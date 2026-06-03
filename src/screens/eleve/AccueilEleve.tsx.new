@@ -1,0 +1,10 @@
+        {/* AudioRévision Photo */}
+        <TouchableOpacity
+          style={styles.arenaButton}
+          onPress={() => navigation.navigate('AudioPhotoAccueil')}
+        >
+          <LinearGradient colors={['#0A1030', '#00B37A']} style={styles.arenaGradient}>
+            <MaterialCommunityIcons name="camera-plus" size={22} color="white" />
+            <Text style={styles.arenaText}>🎧 AudioRévision — Photo → Podcast</Text>
+          </LinearGradient>
+        </TouchableOpacity>

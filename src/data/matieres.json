@@ -1,0 +1,70 @@
+{
+  "matieres": [
+    {
+      "nom": "Français",
+      "icone": "book-open-page-variant",
+      "couleur": "#4CAF50",
+      "ordre": 1
+    },
+    {
+      "nom": "Mathématiques",
+      "icone": "calculator-variant",
+      "couleur": "#2196F3",
+      "ordre": 2
+    },
+    {
+      "nom": "Histoire-Géographie",
+      "icone": "earth",
+      "couleur": "#FF9800",
+      "ordre": 3
+    },
+    {
+      "nom": "Éducation civique",
+      "icone": "account-group",
+      "couleur": "#9C27B0",
+      "ordre": 4
+    },
+    {
+      "nom": "Anglais",
+      "icone": "translate",
+      "couleur": "#F44336",
+      "ordre": 5
+    },
+    {
+      "nom": "Allemand",
+      "icone": "translate",
+      "couleur": "#FFC107",
+      "ordre": 6
+    },
+    {
+      "nom": "Espagnol",
+      "icone": "translate",
+      "couleur": "#FF5722",
+      "ordre": 7
+    },
+    {
+      "nom": "Sciences de la vie et de la Terre (SVT)",
+      "icone": "leaf",
+      "couleur": "#8BC34A",
+      "ordre": 8
+    },
+    {
+      "nom": "Physique-Chimie",
+      "icone": "flask",
+      "couleur": "#00BCD4",
+      "ordre": 9
+    },
+    {
+      "nom": "Philosophie",
+      "icone": "thought-bubble",
+      "couleur": "#9E9E9E",
+      "ordre": 10
+    },
+    {
+      "nom": "Économie",
+      "icone": "chart-line",
+      "couleur": "#795548",
+      "ordre": 11
+    }
+  ]
+}

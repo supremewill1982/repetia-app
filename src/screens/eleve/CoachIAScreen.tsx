@@ -1,0 +1,358 @@
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  View, Text, StyleSheet, TouchableOpacity, ScrollView,
+  TextInput, ActivityIndicator, KeyboardAvoidingView,
+  Platform, FlatList, Alert, Modal,
+} from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system';
+import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
+import { chargerContexteEleve, contexteEleve } from '../../services/iaCoachingService';
+import { AGENTS, chatAvecAgent, getAgent } from '../../services/iaServiceOpenRouter';
+import { incrementCoachCount } from '../../services/badgesService';
+
+type Message = { role: 'user' | 'assistant'; content: string; attachment?: string };
+
+export default function CoachIAScreen({ navigation }: any) {
+  const { colors }   = useTheme();
+  const { userData } = useAuth();
+
+  const [selectedAgentId, setSelectedAgentId] = useState('maths');
+  const [message, setMessage]                 = useState('');
+  const [conversation, setConversation]       = useState<Message[]>([]);
+  const [loading, setLoading]                 = useState(false);
+  const [initializing, setInitializing]       = useState(true);
+  const [showAttachMenu, setShowAttachMenu]   = useState(false);
+  const [attachedImage, setAttachedImage]     = useState<string | null>(null);
+  const [attachedLabel, setAttachedLabel]     = useState<string | null>(null);
+
+  const scrollViewRef = useRef<ScrollView>(null);
+  const selectedAgent = getAgent(selectedAgentId);
+
+  useEffect(() => {
+    const init = async () => {
+      await chargerContexteEleve();
+      setInitializing(false);
+      const prenom = contexteEleve.prenom || (userData as any)?.prenom || 'élève';
+      setConversation([{
+        role: 'assistant',
+        content: `Bonjour ${prenom} ! 👋\n\nJe suis ${selectedAgent.nom}, ton prof de ${selectedAgent.matiere}.\n\n${selectedAgent.signature}\n\nTu peux me poser des questions, m'envoyer une photo de cours ou un exercice PDF ! 📚`,
+      }]);
+    };
+    init();
+  }, []);
+
+  const changerAgent = (agentId: string) => {
+    if (agentId === selectedAgentId) return;
+    setSelectedAgentId(agentId);
+    const agent = getAgent(agentId);
+    const prenom = contexteEleve.prenom || (userData as any)?.prenom || 'élève';
+    setAttachedImage(null);
+    setAttachedLabel(null);
+    setConversation([{
+      role: 'assistant',
+      content: `Je suis maintenant ${agent.nom}, ton prof de ${agent.matiere}.\n\n${agent.signature}\n\nQu'est-ce qu'on révise ? 📚`,
+    }]);
+  };
+
+  const handlePickImage = async (source: 'camera' | 'gallery') => {
+    setShowAttachMenu(false);
+    try {
+      let result;
+      if (source === 'camera') {
+        const perm = await ImagePicker.requestCameraPermissionsAsync();
+        if (!perm.granted) { Alert.alert('Permission requise', 'Active la caméra dans les paramètres.'); return; }
+        result = await ImagePicker.launchCameraAsync({ base64: true, quality: 0.7 });
+      } else {
+        result = await ImagePicker.launchImageLibraryAsync({ base64: true, quality: 0.7 });
+      }
+      if (!result.canceled && result.assets[0]) {
+        setAttachedImage(result.assets[0].base64 || null);
+        setAttachedLabel('📷 Image jointe');
+      }
+    } catch (e) {
+      Alert.alert('Erreur', 'Impossible de charger l\'image.');
+    }
+  };
+
+  const handlePickPDF = async () => {
+    setShowAttachMenu(false);
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'application/pdf',
+        copyToCacheDirectory: true,
+      });
+      if (!result.canceled && result.assets[0]) {
+        const base64 = await FileSystem.readAsStringAsync(result.assets[0].uri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        setAttachedImage(base64);
+        setAttachedLabel(`📄 ${result.assets[0].name}`);
+      }
+    } catch (e) {
+      Alert.alert('Erreur', 'Impossible de lire le PDF.');
+    }
+  };
+
+  const envoyerMessage = async () => {
+    if ((!message.trim() && !attachedImage) || loading) return;
+
+    const userContent = message.trim() || (attachedLabel ? `Analyse ce fichier : ${attachedLabel}` : '');
+    const imageToSend = attachedImage;
+    const labelToSend = attachedLabel;
+
+    setMessage('');
+    setAttachedImage(null);
+    setAttachedLabel(null);
+
+    const newConversation: Message[] = [
+      ...conversation,
+      { role: 'user', content: userContent, attachment: labelToSend || undefined },
+    ];
+    setConversation(newConversation);
+    setLoading(true);
+    setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100);
+
+    await incrementCoachCount();
+
+    try {
+      let promptFinal = userContent;
+      if (imageToSend) {
+        promptFinal = `${userContent}\n\n[FICHIER JOINT : ${labelToSend}]\n\nAnalyse ce fichier et aide-moi à comprendre le contenu en tant que ${selectedAgent.nom}.`;
+      }
+
+      const historique = newConversation.slice(0, -1).slice(-8);
+      const reponse = await chatAvecAgent(
+        selectedAgentId,
+        promptFinal,
+        historique,
+        contexteEleve.niveau,
+        imageToSend || undefined,
+      );
+
+      setConversation(prev => [...prev, { role: 'assistant', content: reponse.message }]);
+      setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 150);
+    } catch {
+      setConversation(prev => [...prev, {
+        role: 'assistant',
+        content: 'Désolé, je rencontre une difficulté. Réessaie dans un instant.',
+      }]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (initializing) {
+    return (
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <Text style={{ fontSize: 48, marginBottom: 16 }}>🦁</Text>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.loadingTxt, { color: colors.textMuted }]}>Chargement du coach...</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
+        </TouchableOpacity>
+        <View style={[styles.agentAvatar, { backgroundColor: selectedAgent.couleur + '20' }]}>
+          <Text style={{ fontSize: 24 }}>{selectedAgent.emoji}</Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.agentNom, { color: colors.text }]}>{selectedAgent.nom}</Text>
+          <Text style={[styles.agentMat, { color: colors.textMuted }]}>{selectedAgent.matiere}</Text>
+        </View>
+      </View>
+
+      <FlatList
+        data={AGENTS}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        keyExtractor={item => item.id}
+        contentContainerStyle={styles.agentsBar}
+        style={[styles.agentsBarWrapper, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}
+        renderItem={({ item }) => {
+          const sel = item.id === selectedAgentId;
+          return (
+            <TouchableOpacity
+              style={[styles.agentChip, {
+                backgroundColor: sel ? item.couleur + '20' : colors.background,
+                borderColor:     sel ? item.couleur : colors.border,
+                borderWidth:     sel ? 2 : 1,
+              }]}
+              onPress={() => changerAgent(item.id)}
+            >
+              <Text style={{ fontSize: 16 }}>{item.emoji}</Text>
+              <Text style={[styles.agentChipTxt, { color: sel ? item.couleur : colors.textMuted }]}>
+                {item.matiere.split('-')[0].split(' ')[0]}
+              </Text>
+            </TouchableOpacity>
+          );
+        }}
+      />
+
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 80}
+      >
+        <ScrollView
+          ref={scrollViewRef}
+          style={{ flex: 1 }}
+          contentContainerStyle={styles.chatContent}
+        >
+          {conversation.map((msg, i) => (
+            <View
+              key={i}
+              style={[
+                styles.bubble,
+                msg.role === 'user'
+                  ? [styles.bubbleUser,      { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30' }]
+                  : [styles.bubbleAssistant, { backgroundColor: colors.surface, borderColor: colors.border }],
+              ]}
+            >
+              {msg.role === 'assistant' && (
+                <Text style={styles.bubbleAgentEmoji}>{selectedAgent.emoji}</Text>
+              )}
+              <View style={{ flex: 1 }}>
+                {msg.attachment && (
+                  <View style={[styles.attachBadge, { backgroundColor: colors.primary + '15' }]}>
+                    <Text style={[styles.attachBadgeTxt, { color: colors.primary }]}>{msg.attachment}</Text>
+                  </View>
+                )}
+                <Text style={[styles.bubbleTxt, { color: colors.text }]}>{msg.content}</Text>
+              </View>
+            </View>
+          ))}
+
+          {loading && (
+            <View style={[styles.bubble, styles.bubbleAssistant, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <Text style={styles.bubbleAgentEmoji}>{selectedAgent.emoji}</Text>
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={[styles.thinkingTxt, { color: colors.textMuted }]}>Réflexion...</Text>
+            </View>
+          )}
+        </ScrollView>
+
+        <View style={[styles.inputZone, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
+          {attachedLabel && (
+            <View style={[styles.attachedRow, { backgroundColor: colors.primary + '10' }]}>
+              <Text style={[styles.attachedTxt, { color: colors.primary }]} numberOfLines={1}>{attachedLabel}</Text>
+              <TouchableOpacity onPress={() => { setAttachedImage(null); setAttachedLabel(null); }}>
+                <MaterialCommunityIcons name="close-circle" size={18} color={colors.primary} />
+              </TouchableOpacity>
+            </View>
+          )}
+
+          <View style={styles.inputRow}>
+            <TouchableOpacity
+              style={[styles.attachBtn, { backgroundColor: colors.background, borderColor: colors.border }]}
+              onPress={() => setShowAttachMenu(true)}
+            >
+              <MaterialCommunityIcons name="paperclip" size={20} color={colors.textMuted} />
+            </TouchableOpacity>
+
+            <TextInput
+              style={[styles.input, { color: colors.text, backgroundColor: colors.background, borderColor: colors.border }]}
+              placeholder={`Question à ${selectedAgent.nom}...`}
+              placeholderTextColor={colors.textMuted}
+              value={message}
+              onChangeText={setMessage}
+              multiline
+              maxLength={600}
+            />
+
+            <TouchableOpacity
+              style={[
+                styles.sendBtn,
+                { backgroundColor: (message.trim() || attachedImage) ? selectedAgent.couleur : colors.border },
+              ]}
+              onPress={envoyerMessage}
+              disabled={loading || (!message.trim() && !attachedImage)}
+            >
+              <MaterialCommunityIcons name="send" size={20} color="white" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+
+      <Modal visible={showAttachMenu} transparent animationType="slide" onRequestClose={() => setShowAttachMenu(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowAttachMenu(false)}>
+          <View style={[styles.attachMenu, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.attachMenuTitre, { color: colors.text }]}>Joindre un fichier</Text>
+            {[
+              { icon: 'camera', label: '📸 Prendre une photo', action: () => handlePickImage('camera') },
+              { icon: 'image-multiple', label: '🖼️ Choisir dans la galerie', action: () => handlePickImage('gallery') },
+              { icon: 'file-pdf-box', label: '📄 Importer un PDF', action: handlePickPDF },
+            ].map(({ icon, label, action }) => (
+              <TouchableOpacity
+                key={icon}
+                style={[styles.attachMenuItem, { borderBottomColor: colors.border }]}
+                onPress={action}
+              >
+                <MaterialCommunityIcons name={icon as any} size={22} color={colors.primary} />
+                <Text style={[styles.attachMenuLbl, { color: colors.text }]}>{label}</Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity style={styles.attachMenuCancel} onPress={() => setShowAttachMenu(false)}>
+              <Text style={[styles.attachMenuCancelTxt, { color: colors.textMuted }]}>Annuler</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
+  loadingTxt: { fontSize: 14, marginTop: 8 },
+
+  header: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingTop: 50, paddingBottom: 14, paddingHorizontal: 16,
+    gap: 12, borderBottomWidth: 1,
+  },
+  backBtn: { width: 38, height: 38, borderRadius: 19, justifyContent: 'center', alignItems: 'center' },
+  agentAvatar: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
+  agentNom:  { fontSize: 16, fontWeight: '700' },
+  agentMat:  { fontSize: 12, marginTop: 1 },
+
+  agentsBarWrapper: { maxHeight: 58, borderBottomWidth: 1 },
+  agentsBar: { paddingHorizontal: 12, paddingVertical: 8, gap: 8 },
+  agentChip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16 },
+  agentChipTxt: { fontSize: 11, fontWeight: '600' },
+
+  chatContent: { padding: 16, paddingBottom: 8, gap: 12 },
+  bubble: { maxWidth: '88%', padding: 12, borderRadius: 18, borderWidth: 1 },
+  bubbleUser: { alignSelf: 'flex-end', borderBottomRightRadius: 4 },
+  bubbleAssistant: { alignSelf: 'flex-start', borderBottomLeftRadius: 4, flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  bubbleAgentEmoji: { fontSize: 18, marginTop: 2 },
+  bubbleTxt: { fontSize: 15, lineHeight: 22 },
+  thinkingTxt: { fontSize: 13, fontStyle: 'italic' },
+  attachBadge: { flexDirection: 'row', alignItems: 'center', padding: 6, borderRadius: 8, marginBottom: 6 },
+  attachBadgeTxt: { fontSize: 12, fontWeight: '600' },
+
+  inputZone: { borderTopWidth: 1, paddingHorizontal: 12, paddingTop: 10, paddingBottom: Platform.OS === 'ios' ? 30 : 14, gap: 8 },
+  attachedRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, gap: 8 },
+  attachedTxt: { flex: 1, fontSize: 12, fontWeight: '600' },
+  inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
+  attachBtn: { width: 42, height: 42, borderRadius: 21, justifyContent: 'center', alignItems: 'center', borderWidth: 1 },
+  input: { flex: 1, minHeight: 42, maxHeight: 120, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 21, borderWidth: 1, fontSize: 15 },
+  sendBtn: { width: 42, height: 42, borderRadius: 21, justifyContent: 'center', alignItems: 'center', shadowColor: '#2B3A4A', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.15, shadowRadius: 6, elevation: 4 },
+
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  attachMenu: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, gap: 4, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 10 },
+  attachMenuTitre: { fontSize: 16, fontWeight: '700', textAlign: 'center', marginBottom: 12 },
+  attachMenuItem: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 16, borderBottomWidth: 1 },
+  attachMenuLbl: { fontSize: 15, fontWeight: '500' },
+  attachMenuCancel: { paddingVertical: 14, alignItems: 'center', marginTop: 4 },
+  attachMenuCancelTxt: { fontSize: 15 },
+});
