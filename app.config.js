@@ -3,12 +3,12 @@ require('dotenv').config();
 module.exports = {
   expo: {
     name: "RÉPÉTIA",
-    slug: "repetia-app",
+    slug: "repetia",
     version: "1.0.0",
     orientation: "portrait",
     icon: "./assets/icon.png",
     userInterfaceStyle: "light",
-    newArchEnabled: true,
+    newArchEnabled: false,
     splash: {
       image: "./assets/splash-icon.png",
       resizeMode: "contain",
