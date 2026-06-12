@@ -5,10 +5,10 @@ module.exports = {
     name: "RÉPÉTIA",
     slug: "repetia",
     version: "1.0.0",
+  newArchEnabled: true,
     orientation: "portrait",
     icon: "./assets/icon.png",
     userInterfaceStyle: "light",
-    newArchEnabled: false,
     splash: {
       image: "./assets/splash-icon.png",
       resizeMode: "contain",

@@ -1,3 +1,11 @@
+
+# Ensuite :
+git status
+# Affiche : modified: App.tsx
+
+git add .
+git commit -m "version prefinale1206261133"
+git push
 import React, { useEffect, useState } from 'react';
 import { View, ActivityIndicator, Text, StatusBar } from 'react-native';
 import { NavigationContainer }   from '@react-navigation/native';
@@ -48,3 +56,4 @@ export default function App() {
     </SafeAreaProvider>
   );
 }
+
