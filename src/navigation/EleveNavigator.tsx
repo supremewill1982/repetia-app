@@ -78,6 +78,8 @@ import TuteurProfilScreen     from '../screens/eleve/TuteurProfilScreen';
 import InscriptionTuteurScreen from '../screens/tuteur/InscriptionTuteurScreen';
 import TestValidationScreen   from '../screens/tuteur/TestValidationScreen';
 import TuteurDashboardScreen  from '../screens/tuteur/TuteurDashboardScreen';
+import SubmitRatingScreen     from '../screens/eleve/SubmitRatingScreen';
+import MesSessionsEleveScreen from '../screens/eleve/MesSessionsEleveScreen';
 
 // Imports optionnels
 let DetailsSessionScreen: any = null;
@@ -228,12 +230,14 @@ export default function EleveNavigator({ initialRoute }: { initialRoute: string 
           {/* Oracle du Bac */}
           <Stack.Screen name="OracleBac" component={OracleBacScreen} />
 
-          {/* Répétiteurs */}
-          <Stack.Screen name="TuteursList"       component={TuteursListeScreen} />
-          <Stack.Screen name="TuteurProfil"      component={TuteurProfilScreen} />
-          <Stack.Screen name="InscriptionTuteur" component={InscriptionTuteurScreen} />
-          <Stack.Screen name="TestValidation"    component={TestValidationScreen} />
-          <Stack.Screen name="TuteurDashboard"   component={TuteurDashboardScreen} />
+           {/* Répétiteurs */}
+           <Stack.Screen name="TuteursList"       component={TuteursListeScreen} />
+           <Stack.Screen name="TuteurProfil"      component={TuteurProfilScreen} />
+           <Stack.Screen name="InscriptionTuteur" component={InscriptionTuteurScreen} />
+           <Stack.Screen name="TestValidation"    component={TestValidationScreen} />
+           <Stack.Screen name="TuteurDashboard"   component={TuteurDashboardScreen} />
+           <Stack.Screen name="SubmitRating"     component={SubmitRatingScreen} />
+           <Stack.Screen name="MesSessionsEleve"  component={MesSessionsEleveScreen} />
 
           {/* Optionnels */}
           {DetailsSessionScreen && (

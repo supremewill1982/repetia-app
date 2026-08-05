@@ -339,7 +339,7 @@ export default function QuestionRevision({ route, navigation }: any) {
               style={[styles.textInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
               placeholder="Écris ta réponse ici..."
               placeholderTextColor={colors.textMuted}
-              value={reponse}
+              selectedValue={reponse}
               onChangeText={setReponse}
               multiline
               numberOfLines={4}

@@ -290,12 +290,12 @@ export async function calculerStatsPourBadges() {
     const tempsTravail = await getTempsTravailMinutes();
     const questionsCoach = await getCoachCount();
 
-    const isDevoir = (s: any) =>
+    const isDevoir = (s: any): boolean =>
       s.type === 'devoir' || s.source === 'devoir' ||
       (s.cours && s.cours.toLowerCase().includes('devoir'));
 
-    const sessionsRevision = sessions.filter(s => !isDevoir(s));
-    const sessionsDevoir   = sessions.filter(s => isDevoir(s));
+    const sessionsRevision = sessions.filter((s: any) => !isDevoir(s));
+    const sessionsDevoir   = sessions.filter((s: any) => isDevoir(s));
 
     let bonnesReponses     = 0;
     let sansFaute          = 0;
@@ -308,7 +308,7 @@ export async function calculerStatsPourBadges() {
 
     const matieresSet = new Set<string>();
 
-    sessions.forEach(s => {
+    sessions.forEach((s: any) => {
       if (s.matiere) matieresSet.add(s.matiere);
 
       const qs = s.questions || [];
@@ -386,18 +386,43 @@ export async function verifierEtDebloquerBadges(): Promise<any[]> {
     const idsObtenus     = new Set(badgesActuels.map((b: any) => b.id));
     const nouveaux: any[] = [];
 
+    // Validation des statistiques avant déblocage
+    if (!stats || Object.values(stats).some(v => v === undefined || v === null)) {
+      console.error('❌ Statistiques invalides pour le déblocage des badges');
+      return [];
+    }
+
     for (const badge of BADGES_LIST) {
-      if (!idsObtenus.has(badge.id) && badge.condition(stats)) {
-        const nouveau = {
-          id:            badge.id,
-          nom:           badge.nom,
-          description:   badge.description,
-          icone:         badge.icone,
-          couleur:       badge.couleur,
-          dateObtention: new Date().toISOString(),
-        };
-        nouveaux.push(nouveau);
-        console.log(`🏅 BADGE DÉBLOQUÉ : ${badge.nom}`);
+      if (!idsObtenus.has(badge.id)) {
+        try {
+          // Vérification stricte de la condition
+          const conditionSatisfaite = badge.condition(stats);
+
+          // Validation supplémentaire pour les badges sensibles
+          if (conditionSatisfaite) {
+            // Ajouter des vérifications spécifiques pour certains badges
+            if (badge.id === 'temps_50h' && stats.tempsTravail < 3000) {
+              continue; // Empêcher le contournement
+            }
+
+            if (badge.id === 'cinquante_revisions' && stats.totalRevisions < 50) {
+              continue; // Empêcher le contournement
+            }
+
+            const nouveau = {
+              id:            badge.id,
+              nom:           badge.nom,
+              description:   badge.description,
+              icone:         badge.icone,
+              couleur:       badge.couleur,
+              dateObtention: new Date().toISOString(),
+            };
+            nouveaux.push(nouveau);
+            console.log(`🏅 BADGE DÉBLOQUÉ : ${badge.nom}`);
+          }
+        } catch (e) {
+          console.error(`❌ Erreur vérification badge ${badge.id}:`, e);
+        }
       }
     }
 
@@ -407,7 +432,7 @@ export async function verifierEtDebloquerBadges(): Promise<any[]> {
 
     return nouveaux;
   } catch (e) {
-    console.error('Erreur vérification badges:', e);
+    console.error('❌ Erreur vérification badges:', e);
     return [];
   }
 }

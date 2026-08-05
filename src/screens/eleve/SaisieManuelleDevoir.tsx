@@ -39,10 +39,10 @@ export default function SaisieManuelleDevoir({ route, navigation }) {
 
       <View style={styles.form}>
         <Text style={[styles.label, { color: colors.text }]}>Titre du devoir</Text>
-        <TextInput style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]} placeholder="Ex: Devoir de maths" placeholderTextColor={colors.textMuted} value={titre} onChangeText={setTitre} />
+        <TextInput style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]} placeholder="Ex: Devoir de maths" placeholderTextColor={colors.textMuted} selectedValue={titre} onChangeText={setTitre} />
 
         <Text style={[styles.label, { color: colors.text }]}>Consignes (optionnel)</Text>
-        <TextInput style={[styles.inputMultiline, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]} placeholder="Instructions générales..." placeholderTextColor={colors.textMuted} value={consignes} onChangeText={setConsignes} multiline numberOfLines={3} />
+        <TextInput style={[styles.inputMultiline, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]} placeholder="Instructions générales..." placeholderTextColor={colors.textMuted} selectedValue={consignes} onChangeText={setConsignes} multiline numberOfLines={3} />
 
         <Text style={[styles.sectionTitle, { color: colors.text }]}>📖 Questions</Text>
         
@@ -52,8 +52,8 @@ export default function SaisieManuelleDevoir({ route, navigation }) {
               <Text style={[styles.questionNumber, { color: colors.primary }]}>Question {idx + 1}</Text>
               {questions.length > 1 && <TouchableOpacity onPress={() => supprimerQuestion(idx)}><MaterialCommunityIcons name="delete" size={20} color={colors.error} /></TouchableOpacity>}
             </View>
-            <TextInput style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]} placeholder="Écris la question..." placeholderTextColor={colors.textMuted} value={q.texte} onChangeText={(text) => mettreAJourQuestion(idx, 'texte', text)} multiline />
-            <TextInput style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border, marginTop: 8 }]} placeholder="Correction attendue (optionnel)" placeholderTextColor={colors.textMuted} value={q.reponseAttendue} onChangeText={(text) => mettreAJourQuestion(idx, 'reponseAttendue', text)} multiline />
+            <TextInput style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]} placeholder="Écris la question..." placeholderTextColor={colors.textMuted} selectedValue={q.texte} onChangeText={(text) => mettreAJourQuestion(idx, 'texte', text)} multiline />
+            <TextInput style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border, marginTop: 8 }]} placeholder="Correction attendue (optionnel)" placeholderTextColor={colors.textMuted} selectedValue={q.reponseAttendue} onChangeText={(text) => mettreAJourQuestion(idx, 'reponseAttendue', text)} multiline />
           </View>
         ))}
 

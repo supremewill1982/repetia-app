@@ -79,7 +79,7 @@ export default function InscriptionEnfantScreen({ navigation, onLogin }) {
 
           <View style={styles.inputContainer}>
             <Text style={[styles.label, { color: colors.text }]}>Prénom</Text>
-            <TextInput style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: errors.prenom ? colors.error : colors.border }]} placeholder="Thomas" placeholderTextColor={colors.textMuted} value={prenom} onChangeText={setPrenom} />
+            <TextInput style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: errors.prenom ? colors.error : colors.border }]} placeholder="Thomas" placeholderTextColor={colors.textMuted} selectedValue={prenom} onChangeText={setPrenom} />
             {errors.prenom && <Text style={[styles.errorText, { color: colors.error }]}>{errors.prenom}</Text>}
           </View>
 
@@ -93,14 +93,14 @@ export default function InscriptionEnfantScreen({ navigation, onLogin }) {
 
           <View style={styles.inputContainer}>
             <Text style={[styles.label, { color: colors.text }]}>Email</Text>
-            <TextInput style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: errors.email ? colors.error : colors.border }]} placeholder="thomas@email.com" placeholderTextColor={colors.textMuted} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
+            <TextInput style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: errors.email ? colors.error : colors.border }]} placeholder="thomas@email.com" placeholderTextColor={colors.textMuted} selectedValue={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
             {errors.email && <Text style={[styles.errorText, { color: colors.error }]}>{errors.email}</Text>}
           </View>
 
           <View style={styles.inputContainer}>
             <Text style={[styles.label, { color: colors.text }]}>Mot de passe</Text>
             <View style={{ position: 'relative' }}>
-              <TextInput style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: errors.password ? colors.error : colors.border }]} placeholder="••••••••" placeholderTextColor={colors.textMuted} value={password} onChangeText={setPassword} secureTextEntry={!showPassword} />
+              <TextInput style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: errors.password ? colors.error : colors.border }]} placeholder="••••••••" placeholderTextColor={colors.textMuted} selectedValue={password} onChangeText={setPassword} secureTextEntry={!showPassword} />
               <TouchableOpacity style={styles.eyeIcon} onPress={() => setShowPassword(!showPassword)}>
                 <MaterialCommunityIcons name={showPassword ? 'eye-off' : 'eye'} size={20} color={colors.textSecondary} />
               </TouchableOpacity>
@@ -110,7 +110,7 @@ export default function InscriptionEnfantScreen({ navigation, onLogin }) {
 
           <View style={styles.inputContainer}>
             <Text style={[styles.label, { color: colors.text }]}>Confirmer le mot de passe</Text>
-            <TextInput style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: errors.confirmPassword ? colors.error : colors.border }]} placeholder="••••••••" placeholderTextColor={colors.textMuted} value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry={!showPassword} />
+            <TextInput style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: errors.confirmPassword ? colors.error : colors.border }]} placeholder="••••••••" placeholderTextColor={colors.textMuted} selectedValue={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry={!showPassword} />
             {errors.confirmPassword && <Text style={[styles.errorText, { color: colors.error }]}>{errors.confirmPassword}</Text>}
           </View>
 

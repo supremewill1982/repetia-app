@@ -141,7 +141,7 @@ export default function QuestionsParMatiereScreen({ route, navigation }) {
             style={[styles.searchInput, { color: colors.text }]}
             placeholder="Rechercher une question..."
             placeholderTextColor={colors.textMuted}
-            value={searchText}
+            selectedValue={searchText}
             onChangeText={setSearchText}
           />
           {searchText !== '' && (

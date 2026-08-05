@@ -17,30 +17,41 @@ import { incrementCoachCount } from '../../services/badgesService';
 type Message = { role: 'user' | 'assistant'; content: string; attachment?: string };
 
 export default function CoachIAScreen({ navigation }: any) {
-  const { colors }   = useTheme();
+  const { colors } = useTheme();
   const { userData } = useAuth();
 
   const [selectedAgentId, setSelectedAgentId] = useState('maths');
-  const [message, setMessage]                 = useState('');
-  const [conversation, setConversation]       = useState<Message[]>([]);
-  const [loading, setLoading]                 = useState(false);
-  const [initializing, setInitializing]       = useState(true);
-  const [showAttachMenu, setShowAttachMenu]   = useState(false);
-  const [attachedImage, setAttachedImage]     = useState<string | null>(null);
-  const [attachedLabel, setAttachedLabel]     = useState<string | null>(null);
+  const [message, setMessage] = useState('');
+  const [conversation, setConversation] = useState<Message[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [initializing, setInitializing] = useState(true);
+  const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const [attachedImage, setAttachedImage] = useState<string | null>(null);
+  const [attachedLabel, setAttachedLabel] = useState<string | null>(null);
 
   const scrollViewRef = useRef<ScrollView>(null);
   const selectedAgent = getAgent(selectedAgentId);
 
   useEffect(() => {
     const init = async () => {
-      await chargerContexteEleve();
-      setInitializing(false);
-      const prenom = contexteEleve.prenom || (userData as any)?.prenom || 'élève';
-      setConversation([{
-        role: 'assistant',
-        content: `Bonjour ${prenom} ! 👋\n\nJe suis ${selectedAgent.nom}, ton prof de ${selectedAgent.matiere}.\n\n${selectedAgent.signature}\n\nTu peux me poser des questions, m'envoyer une photo de cours ou un exercice PDF ! 📚`,
-      }]);
+      try {
+        await chargerContexteEleve();
+        const prenom = contexteEleve?.prenom || (userData as any)?.prenom || 'élève';
+        const niveau = contexteEleve?.niveau || 'Terminale';
+        setConversation([{
+          role: 'assistant',
+          content: `Bonjour ${prenom} ! 👋\n\nJe suis ${selectedAgent.nom}, ton prof de ${selectedAgent.matiere} (niveau: ${niveau}).\n\n${selectedAgent.signature}\n\nTu peux me poser des questions, m'envoyer une photo de cours ou un exercice PDF ! 📚`,
+        }]);
+      } catch (error) {
+        console.error('Erreur chargement contexte:', error);
+        const prenom = (userData as any)?.prenom || 'élève';
+        setConversation([{
+          role: 'assistant',
+          content: `Bonjour ${prenom} ! 👋\n\nJe suis ${selectedAgent.nom}, ton prof de ${selectedAgent.matiere}.\n\n${selectedAgent.signature}\n\nTu peux me poser des questions ! 📚`,
+        }]);
+      } finally {
+        setInitializing(false);
+      }
     };
     init();
   }, []);
@@ -49,12 +60,13 @@ export default function CoachIAScreen({ navigation }: any) {
     if (agentId === selectedAgentId) return;
     setSelectedAgentId(agentId);
     const agent = getAgent(agentId);
-    const prenom = contexteEleve.prenom || (userData as any)?.prenom || 'élève';
+    const prenom = contexteEleve?.prenom || (userData as any)?.prenom || 'élève';
+    const niveau = contexteEleve?.niveau || 'Terminale';
     setAttachedImage(null);
     setAttachedLabel(null);
     setConversation([{
       role: 'assistant',
-      content: `Je suis maintenant ${agent.nom}, ton prof de ${agent.matiere}.\n\n${agent.signature}\n\nQu'est-ce qu'on révise ? 📚`,
+      content: `Je suis maintenant ${agent.nom}, ton prof de ${agent.matiere} (niveau: ${niveau}).\n\n${agent.signature}\n\nQu'est-ce qu'on révise ? 📚`,
     }]);
   };
 
@@ -64,7 +76,10 @@ export default function CoachIAScreen({ navigation }: any) {
       let result;
       if (source === 'camera') {
         const perm = await ImagePicker.requestCameraPermissionsAsync();
-        if (!perm.granted) { Alert.alert('Permission requise', 'Active la caméra dans les paramètres.'); return; }
+        if (!perm.granted) {
+          Alert.alert('Permission requise', 'Active la caméra dans les paramètres.');
+          return;
+        }
         result = await ImagePicker.launchCameraAsync({ base64: true, quality: 0.7 });
       } else {
         result = await ImagePicker.launchImageLibraryAsync({ base64: true, quality: 0.7 });
@@ -125,20 +140,22 @@ export default function CoachIAScreen({ navigation }: any) {
       }
 
       const historique = newConversation.slice(0, -1).slice(-8);
+      const niveau = contexteEleve?.niveau || selectedAgentId === 'philo' ? 'Terminale' : 'Seconde';
       const reponse = await chatAvecAgent(
         selectedAgentId,
         promptFinal,
         historique,
-        contexteEleve.niveau,
+        niveau,
         imageToSend || undefined,
       );
 
       setConversation(prev => [...prev, { role: 'assistant', content: reponse.message }]);
       setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 150);
-    } catch {
+    } catch (error) {
+      console.error('Erreur envoyerMessage:', error);
       setConversation(prev => [...prev, {
         role: 'assistant',
-        content: 'Désolé, je rencontre une difficulté. Réessaie dans un instant.',
+        content: 'Désolé, je rencontre une difficulté technique. Réessaie dans un instant.',
       }]);
     } finally {
       setLoading(false);
@@ -183,8 +200,8 @@ export default function CoachIAScreen({ navigation }: any) {
             <TouchableOpacity
               style={[styles.agentChip, {
                 backgroundColor: sel ? item.couleur + '20' : colors.background,
-                borderColor:     sel ? item.couleur : colors.border,
-                borderWidth:     sel ? 2 : 1,
+                borderColor: sel ? item.couleur : colors.border,
+                borderWidth: sel ? 2 : 1,
               }]}
               onPress={() => changerAgent(item.id)}
             >
@@ -213,7 +230,7 @@ export default function CoachIAScreen({ navigation }: any) {
               style={[
                 styles.bubble,
                 msg.role === 'user'
-                  ? [styles.bubbleUser,      { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30' }]
+                  ? [styles.bubbleUser, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30' }]
                   : [styles.bubbleAssistant, { backgroundColor: colors.surface, borderColor: colors.border }],
               ]}
             >
@@ -262,7 +279,7 @@ export default function CoachIAScreen({ navigation }: any) {
               style={[styles.input, { color: colors.text, backgroundColor: colors.background, borderColor: colors.border }]}
               placeholder={`Question à ${selectedAgent.nom}...`}
               placeholderTextColor={colors.textMuted}
-              value={message}
+              selectedValue={message}
               onChangeText={setMessage}
               multiline
               maxLength={600}

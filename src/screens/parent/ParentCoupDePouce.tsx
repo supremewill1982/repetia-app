@@ -102,7 +102,7 @@ export default function ParentCoupDePouce({ navigation }: any) {
               style={[styles.msgInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
               placeholder={`Écris un message pour ${enfantNom}...`}
               placeholderTextColor={colors.textMuted}
-              value={message}
+              selectedValue={message}
               onChangeText={setMessage}
               multiline
               numberOfLines={4}

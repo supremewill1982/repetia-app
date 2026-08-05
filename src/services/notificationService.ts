@@ -1,150 +1,78 @@
 import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
-import Constants from 'expo-constants';
-import { Platform, Alert } from 'react-native';
-import { auth } from './firebaseConfig';
+import { Platform } from 'react-native';
 
-const isExpoGo = Constants.appOwnership === 'expo';
+export const setupNotificationPermissions = async () => {
+  try {
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
 
-if (!isExpoGo) {
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+
+    if (finalStatus !== 'granted') {
+      console.log('Failed to get push token for push notification!');
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error setting up notification permissions:', error);
+    return false;
+  }
+};
+
+export const scheduleRatingNotification = async (repetiteurName: string, rating: number) => {
+  try {
+    const permissionsGranted = await setupNotificationPermissions();
+    if (!permissionsGranted) return;
+
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: '🎉 Nouveau commentaire reçu !',
+        body: `${repetiteurName}, vous avez reçu une nouvelle note de ${rating} étoiles.`,
+        sound: 'default',
+        vibrate: [0, 250, 250, 250],
+        priority: 'high',
+      },
+      trigger: null, // Send immediately
+    });
+
+    console.log('Rating notification scheduled successfully');
+  } catch (error) {
+    console.error('Error scheduling rating notification:', error);
+  }
+};
+
+export const cancelAllNotifications = async () => {
+  try {
+    await Notifications.cancelAllScheduledNotificationsAsync();
+    console.log('All notifications canceled');
+  } catch (error) {
+    console.error('Error canceling notifications:', error);
+  }
+};
+
+// Configure notification handler
+export const configureNotificationHandler = () => {
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowAlert: true,
       shouldPlaySound: true,
       shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
     }),
   });
-}
 
-let expoPushToken: string | null = null;
-
-export async function registerForPushNotificationsAsync(): Promise<string | null> {
-  if (isExpoGo) {
-    console.log('⚠️ Notifications push désactivées dans Expo Go');
-    return null;
-  }
-
-  if (!Device.isDevice) {
-    console.log('⚠️ Les notifications push ne sont pas disponibles sur l\'émulateur');
-    return null;
-  }
-
-  const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  let finalStatus = existingStatus;
-
-  if (existingStatus !== 'granted') {
-    const { status } = await Notifications.requestPermissionsAsync();
-    finalStatus = status;
-  }
-
-  if (finalStatus !== 'granted') {
-    console.log('❌ Permission de notification non accordée');
-    return null;
-  }
-
-  try {
-    const token = await Notifications.getExpoPushTokenAsync({
-      projectId: Constants.expoConfig?.extra?.eas?.projectId,
-    });
-    expoPushToken = token.data;
-    console.log('✅ Expo Push Token:', token.data.substring(0, 20) + '...');
-    return token.data;
-  } catch (error) {
-    console.error('❌ Erreur récupération token:', error);
-    return null;
-  }
-}
-
-export async function sendLocalNotification(title: string, body: string, data?: any): Promise<void> {
-  if (isExpoGo) {
-    console.log('🔔 Notification locale (simulée):', title);
-    return;
-  }
-  
-  await Notifications.scheduleNotificationAsync({
-    content: { title, body, data, sound: true },
-    trigger: null,
+  // Handle notification when app is foregrounded
+  Notifications.addNotificationReceivedListener(notification => {
+    console.log('Notification received:', notification);
   });
-}
 
-export async function scheduleNotification(title: string, body: string, seconds: number, data?: any): Promise<string> {
-  if (isExpoGo) {
-    console.log(`📅 Notification programmée (simulée) dans ${seconds}s: ${title}`);
-    return `simulated-${Date.now()}`;
-  }
-  
-  const id = await Notifications.scheduleNotificationAsync({
-    content: { title, body, data, sound: true },
-    trigger: { seconds },
+  // Handle notification response
+  Notifications.addNotificationResponseReceivedListener(response => {
+    console.log('Notification response received:', response);
   });
-  return id;
-}
-
-export async function scheduleDailyReminder(hour: number = 18, minute: number = 0): Promise<string> {
-  if (isExpoGo) {
-    console.log(`⏰ Rappel quotidien simulé à ${hour}:${minute}`);
-    return 'simulated';
-  }
-  
-  await Notifications.cancelScheduledNotificationAsync('daily_reminder');
-  
-  const id = await Notifications.scheduleNotificationAsync({
-    content: {
-      title: '📚 Prêt à réviser ?',
-      body: 'Une petite révision aujourd\'hui pour progresser !',
-      sound: true,
-      data: { type: 'daily_reminder' },
-    },
-    trigger: { hour, minute, repeats: true },
-    identifier: 'daily_reminder',
-  });
-  
-  console.log(`⏰ Rappel quotidien programmé à ${hour}:${minute}`);
-  return id;
-}
-
-export async function cancelAllScheduledNotifications(): Promise<void> {
-  if (isExpoGo) {
-    console.log('🗑️ Annulation des notifications (simulée)');
-    return;
-  }
-  await Notifications.cancelAllScheduledNotificationsAsync();
-}
-
-export async function notifyNewBadge(badgeName: string): Promise<void> {
-  await sendLocalNotification(
-    `🎖️ Nouveau badge débloqué !`,
-    `Bravo ! Tu as obtenu le badge "${badgeName}" !`,
-    { type: 'new_badge', badge: badgeName }
-  );
-}
-
-export async function notifySerieAchieved(serie: number): Promise<void> {
-  const message = serie === 3 ? '🔥 3 jours consécutifs ! Continue comme ça !' :
-                   serie === 7 ? '🌟 7 jours de révision ! Tu es sur une bonne lancée !' :
-                   `${serie} jours de révision consécutifs ! Félicitations !`;
-  
-  await sendLocalNotification('🎯 Série de révision !', message, { type: 'serie_achieved', serie });
-}
-
-export async function scheduleRevisionReminder(): Promise<void> {
-  await scheduleDailyReminder(18, 0);
-}
-
-export function addNotificationListener(callback: (notification: any) => void): () => void {
-  if (isExpoGo) {
-    console.log('📱 Listener de notification (simulé)');
-    return () => {};
-  }
-  const subscription = Notifications.addNotificationReceivedListener(callback);
-  return () => subscription.remove();
-}
-
-export function addNotificationResponseListener(callback: (response: any) => void): () => void {
-  if (isExpoGo) {
-    console.log('👆 Listener de réponse (simulé)');
-    return () => {};
-  }
-  const subscription = Notifications.addNotificationResponseReceivedListener(callback);
-  return () => subscription.remove();
-}
+};

@@ -19,7 +19,7 @@ import { useTimeTracking } from '../../../hooks/useTimeTracking';
 import { useFocusEffect } from '@react-navigation/native';
 import AnimatedWrapper from '../../../components/AnimatedWrapper';
 
-export default function ProfilEnfantScreen({ navigation }) {
+export default function ProfilEnfantScreen({ navigation }: any) {
   const { colors, theme, isDark, toggleTheme } = useTheme();
   const { userData, logout } = useAuth();
   const { timeSummary, refresh: refreshTime, loading: timeLoading } = useTimeTracking();
@@ -53,17 +53,17 @@ export default function ProfilEnfantScreen({ navigation }) {
     try {
       setLoading(true);
       
-  // ✅ Moyenne correcte = (points gagnés / points max possibles) × 20
-  // Exemple : 3 pts / 22 pts max = 2.7/20
-  const _toutesQuestions = (sessions || []).flatMap(s => s.questions || []);
-  const _pointsGagnes    = _toutesQuestions.reduce((a, q) => a + (q.note || 0), 0);
-  const _pointsMax       = _toutesQuestions.length * 2; // 2 pts max par question
-  const moyenneGenerale  = _pointsMax > 0
-    ? Math.round((_pointsGagnes / _pointsMax) * 20 * 10) / 10
-    : 0;
-
-  const sessionsRaw = await getSessionsEnfantFirebase(true);
+      const sessionsRaw = await getSessionsEnfantFirebase(true);
       const sessions = Array.isArray(sessionsRaw) ? sessionsRaw : [];
+      
+      // ✅ Moyenne correcte = (points gagnés / points max possibles) × 20
+      // Exemple : 3 pts / 22 pts max = 2.7/20
+      const _toutesQuestions = (sessions || []).flatMap(s => s.questions || []);
+      const _pointsGagnes    = _toutesQuestions.reduce((a, q) => a + (q.note || 0), 0);
+      const _pointsMax       = _toutesQuestions.length * 2; // 2 pts max par question
+      const moyenneGenerale  = _pointsMax > 0
+        ? Math.round((_pointsGagnes / _pointsMax) * 20 * 10) / 10
+        : 0;
       
       const totalRevisions = (sessions || []).filter(s => s.type !== 'devoir').length;
       const totalDevoirs = (sessions || []).filter(s => s.type === 'devoir').length;
@@ -80,7 +80,10 @@ export default function ProfilEnfantScreen({ navigation }) {
       if (datesUniques.length > 0) {
         serie = 1;
         for (let i = 1; i < datesUniques.length; i++) {
-          const diff = (new Date(datesUniques[i]) - new Date(datesUniques[i-1])) / (1000 * 60 * 60 * 24);
+          // Parser les dates pour éviter l'erreur de soustraction d'objets Date
+          const current = new Date(datesUniques[i]).getTime();
+          const previous = new Date(datesUniques[i-1]).getTime();
+          const diff = (current - previous) / (1000 * 60 * 60 * 24);
           if (diff <= 2) serie++;
           else serie = 1;
         }
@@ -277,10 +280,10 @@ export default function ProfilEnfantScreen({ navigation }) {
         </View>
       </AnimatedWrapper>
 
-      {/* SECTION RÉCOMPENSES */}
+      {/* SECTION RÉCOMPENSES & COURS */}
       <AnimatedWrapper type="slide" delay={300}>
         <View style={[styles.section, { backgroundColor: colors.surface }]}>
-          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>RÉCOMPENSES</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>RÉCOMPENSES & COURS</Text>
           
           <TouchableOpacity style={styles.menuItem} onPress={handleVoirBadges}>
             <View style={styles.menuItemLeft}>
@@ -293,6 +296,16 @@ export default function ProfilEnfantScreen({ navigation }) {
                   <Text style={styles.badgeCountText}>{badgesCount}</Text>
                 </View>
               )}
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('MesSessionsEleve')}>
+            <View style={styles.menuItemLeft}>
+              <View style={[styles.menuIcon, { backgroundColor: colors.primary + '20' }]}>
+                <MaterialCommunityIcons name="calendar-clock" size={20} color={colors.primary} />
+              </View>
+              <Text style={[styles.menuLabel, { color: colors.text }]}>Mes réservations de cours</Text>
             </View>
             <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
@@ -312,7 +325,7 @@ export default function ProfilEnfantScreen({ navigation }) {
               <Text style={[styles.menuLabel, { color: colors.text }]}>Changer le thème</Text>
             </View>
             <Text style={[styles.menuValue, { color: colors.textSecondary }]}>
-              {theme === 'auto' ? 'Automatique' : (isDark ? 'Sombre' : 'Clair')}
+              {theme === ('auto' as any) ? 'Automatique' : (isDark ? 'Sombre' : 'Clair')}
             </Text>
             <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>

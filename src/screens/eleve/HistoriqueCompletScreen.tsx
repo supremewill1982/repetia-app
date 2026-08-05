@@ -153,7 +153,7 @@ export default function HistoriqueCompletScreen({ navigation }) {
             style={[styles.searchInput, { color: colors.text }]}
             placeholder="Rechercher une matière..."
             placeholderTextColor={colors.textMuted}
-            value={searchText}
+            selectedValue={searchText}
             onChangeText={setSearchText}
           />
           {searchText !== '' && (

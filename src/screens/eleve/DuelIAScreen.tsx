@@ -347,7 +347,7 @@ export default function DuelIAScreen({ route, navigation }: any) {
             }]}
             placeholder="Réponds rapidement..."
             placeholderTextColor={colors.textMuted}
-            value={reponse}
+            selectedValue={reponse}
             onChangeText={setReponse}
             multiline
             editable={!verification && feedbackMsg === ''}

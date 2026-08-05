@@ -62,7 +62,7 @@ export default function ParentLier({ navigation }: any) {
           }]}
           placeholder="000000"
           placeholderTextColor={colors.textMuted}
-          value={code}
+          selectedValue={code}
           onChangeText={t => setCode(t.replace(/[^0-9]/g, '').slice(0, 6))}
           keyboardType="numeric"
           maxLength={6}

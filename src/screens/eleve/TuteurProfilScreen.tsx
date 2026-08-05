@@ -12,6 +12,7 @@ import {
   getTuteur, getAvisTuteur, creerReservation,
   Tuteur, Avis,
 } from '../../services/tuteurService';
+import { getAverageRatingForRepetiteur } from '../../services/ratingService';
 
 type Onglet = 'profil' | 'reserver' | 'avis';
 
@@ -237,6 +238,18 @@ export default function TuteurProfilScreen({ route, navigation }: any) {
                 <Text style={[styles.statLbl, { color: colors.textMuted }]}>Test IA</Text>
               </View>
             </View>
+
+            {/* Bouton pour noter le répétiteur */}
+            <TouchableOpacity
+              style={[styles.reserverBtnGros, { backgroundColor: '#4CAF50' }]}
+              onPress={() => navigation.navigate('SubmitRating', {
+                repetiteurId: tuteur.uid,
+                repetiteurName: `${tuteur.prenom} ${tuteur.nom}`
+              })}
+            >
+              <MaterialCommunityIcons name="star-plus" size={22} color="white" />
+              <Text style={styles.reserverBtnTxt}>Noter ce répétiteur</Text>
+            </TouchableOpacity>
 
             {/* Tarifs */}
             <View style={[styles.card, { backgroundColor: colors.card }]}>

@@ -282,7 +282,7 @@ export default function AudioRevisionScreen({ navigation }: any) {
                 style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
                 placeholder="Ex: Les dérivées, La photosynthèse..."
                 placeholderTextColor={colors.textMuted}
-                value={sujet}
+                selectedValue={sujet}
                 onChangeText={setSujet}
               />
 

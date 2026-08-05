@@ -196,7 +196,7 @@ export default function TuteursListeScreen({ navigation }: any) {
           style={[styles.searchInput, { color: colors.text }]}
           placeholder="Rechercher un répétiteur..."
           placeholderTextColor={colors.textMuted}
-          value={recherche}
+          selectedValue={recherche}
           onChangeText={setRecherche}
         />
         {recherche.length > 0 && (

@@ -78,7 +78,7 @@ export default function ConnexionEnfantScreen({ navigation }: any) {
               style={[styles.input, { color: colors.text }]}
               placeholder="Email"
               placeholderTextColor={colors.textMuted}
-              value={email}
+              selectedValue={email}
               onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
@@ -91,7 +91,7 @@ export default function ConnexionEnfantScreen({ navigation }: any) {
               style={[styles.input, { color: colors.text }]}
               placeholder="Mot de passe"
               placeholderTextColor={colors.textMuted}
-              value={password}
+              selectedValue={password}
               onChangeText={setPassword}
               secureTextEntry={!showPassword}
             />

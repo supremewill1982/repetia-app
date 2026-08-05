@@ -1,94 +1,140 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, ActivityIndicator } from 'react-native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createStackNavigator }     from '@react-navigation/stack';
-import { MaterialCommunityIcons }   from '@expo/vector-icons';
-import { useSafeAreaInsets }        from 'react-native-safe-area-context';
+import React from 'react';
+import { createStackNavigator } from '@react-navigation/stack';
+import { TouchableOpacity } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
-import { useAuth }   from '../context/AuthContext';
+import ParentDashboard from '../screens/parent/ParentDashboard';
+import ParentAuthScreen from '../screens/parent/ParentAuthScreen';
+import ParentCoupDePouce from '../screens/parent/ParentCoupDePouce';
+import ParentIACoach from '../screens/parent/ParentIACoach';
+import ParentLier from '../screens/parent/ParentLier';
+import ParentParametres from '../screens/parent/ParentParametres';
+import ParentRapport from '../screens/parent/ParentRapport';
+import ParentSessionDetail from '../screens/parent/ParentSessionDetail';
+import ParentTimeline from '../screens/parent/ParentTimeline';
 
-import ParentAuthScreen       from '../screens/parent/ParentAuthScreen';
-import ParentDashboard        from '../screens/parent/ParentDashboard';
-import ParentTimeline         from '../screens/parent/ParentTimeline';
-import ParentIACoach          from '../screens/parent/ParentIACoach';
-import ParentCoupDePouce      from '../screens/parent/ParentCoupDePouce';
-import ParentRapport          from '../screens/parent/ParentRapport';
-import ParentLier             from '../screens/parent/ParentLier';
-import ParentParametres       from '../screens/parent/ParentParametres';
-import ParentSessionDetail    from '../screens/parent/ParentSessionDetail';
-
-const Tab   = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
-function ParentTabs() {
+const ParentNavigator = () => {
   const { colors } = useTheme();
-  const insets     = useSafeAreaInsets();
+
+  // 🎨 Style commun pour le bouton retour
+  const backButton = (navigation: any) => (
+    <TouchableOpacity
+      onPress={() => navigation.goBack()}
+      style={{ marginLeft: 16 }}
+    >
+      <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
+    </TouchableOpacity>
+  );
 
   return (
-    <Tab.Navigator
+    <Stack.Navigator
+      initialRouteName="ParentDashboard"
       screenOptions={{
-        tabBarActiveTintColor:   colors.primary,
-        tabBarInactiveTintColor: colors.textMuted,
-        tabBarStyle: {
+        headerStyle: {
           backgroundColor: colors.surface,
-          borderTopColor:  colors.border,
-          borderTopWidth:  1,
-          paddingBottom:   Math.max(insets.bottom, 8),
-          paddingTop:      6,
-          height:          58 + Math.max(insets.bottom, 8),
+          elevation: 0,
+          shadowOpacity: 0,
         },
-        tabBarLabelStyle: { fontSize: 10, fontWeight: '600' },
-        headerShown: false,
+        headerTintColor: colors.text,
+        headerTitleStyle: {
+          fontWeight: 'bold',
+          color: colors.text,
+        },
       }}
     >
-      <Tab.Screen name="Dashboard" component={ParentDashboard}
-        options={{ tabBarLabel: 'Accueil',
-          tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="home-heart" size={size} color={color} /> }} />
-      <Tab.Screen name="Timeline" component={ParentTimeline}
-        options={{ tabBarLabel: 'Activité',
-          tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="timeline-clock" size={size} color={color} /> }} />
-      <Tab.Screen name="IACoach" component={ParentIACoach}
-        options={{ tabBarLabel: 'IA Coach',
-          tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="brain" size={size} color={color} /> }} />
-      <Tab.Screen name="CoupDePouce" component={ParentCoupDePouce}
-        options={{ tabBarLabel: 'Message',
-          tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="hand-heart" size={size} color={color} /> }} />
-      <Tab.Screen name="Parametres" component={ParentParametres}
-        options={{ tabBarLabel: 'Réglages',
-          tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="cog" size={size} color={color} /> }} />
-    </Tab.Navigator>
-  );
-}
+      {/* Écran principal parent */}
+      <Stack.Screen
+        name="ParentDashboard"
+        component={ParentDashboard}
+        options={({ navigation }) => ({
+          title: 'RÉPÉTIA Parent',
+          headerLeft: () => backButton(navigation),
+        })}
+      />
 
-export default function ParentNavigator() {
-  const { colors }                    = useTheme();
-  const { userId, userRole, loading } = useAuth();
-  const [loggedIn, setLoggedIn]       = useState(false);
+      {/* Authentification parent */}
+      <Stack.Screen
+        name="ParentAuthScreen"
+        component={ParentAuthScreen}
+        options={({ navigation }) => ({
+          title: 'Connexion Parent',
+          headerLeft: () => backButton(navigation),
+        })}
+      />
 
-  useEffect(() => {
-    setLoggedIn(userRole === 'parent' && !!userId);
-  }, [userRole, userId]);
+      {/* Coup de pouce */}
+      <Stack.Screen
+        name="ParentCoupDePouce"
+        component={ParentCoupDePouce}
+        options={({ navigation }) => ({
+          title: 'Coup de pouce',
+          headerLeft: () => backButton(navigation),
+        })}
+      />
 
-  if (loading) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
-  }
+      {/* Coach IA */}
+      <Stack.Screen
+        name="ParentIACoach"
+        component={ParentIACoach}
+        options={({ navigation }) => ({
+          title: 'Coach IA',
+          headerLeft: () => backButton(navigation),
+        })}
+      />
 
-  return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      {!loggedIn ? (
-        <Stack.Screen name="ParentAuth" component={ParentAuthScreen} />
-      ) : (
-        <>
-          <Stack.Screen name="ParentMain"    component={ParentTabs} />
-          <Stack.Screen name="ParentLier"    component={ParentLier} />
-          <Stack.Screen name="ParentRapport" component={ParentRapport} />
-          <Stack.Screen name="ParentDetail"  component={ParentSessionDetail} />
-        </>
-      )}
+      {/* Lier enfant */}
+      <Stack.Screen
+        name="ParentLier"
+        component={ParentLier}
+        options={({ navigation }) => ({
+          title: 'Lier un enfant',
+          headerLeft: () => backButton(navigation),
+        })}
+      />
+
+      {/* Paramètres */}
+      <Stack.Screen
+        name="ParentParametres"
+        component={ParentParametres}
+        options={({ navigation }) => ({
+          title: 'Paramètres',
+          headerLeft: () => backButton(navigation),
+        })}
+      />
+
+      {/* Rapports */}
+      <Stack.Screen
+        name="ParentRapport"
+        component={ParentRapport}
+        options={({ navigation }) => ({
+          title: 'Rapports',
+          headerLeft: () => backButton(navigation),
+        })}
+      />
+
+      {/* Détails session */}
+      <Stack.Screen
+        name="ParentSessionDetail"
+        component={ParentSessionDetail}
+        options={({ navigation }) => ({
+          title: 'Détails Session',
+          headerLeft: () => backButton(navigation),
+        })}
+      />
+
+      {/* Timeline */}
+      <Stack.Screen
+        name="ParentTimeline"
+        component={ParentTimeline}
+        options={({ navigation }) => ({
+          title: 'Timeline',
+          headerLeft: () => backButton(navigation),
+        })}
+      />
     </Stack.Navigator>
   );
-}
+};
+
+export default ParentNavigator;

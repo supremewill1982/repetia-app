@@ -164,7 +164,7 @@ export default function InscriptionTuteurScreen({ navigation }: any) {
                   style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
                   placeholder={ph}
                   placeholderTextColor={colors.textMuted}
-                  value={val}
+                  selectedValue={val}
                   onChangeText={set}
                   keyboardType={keyboard}
                 />
@@ -176,7 +176,7 @@ export default function InscriptionTuteurScreen({ navigation }: any) {
               style={[styles.input, styles.inputMulti, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
               placeholder="Décris ton expérience, tes méthodes, tes succès avec les élèves..."
               placeholderTextColor={colors.textMuted}
-              value={bio}
+              selectedValue={bio}
               onChangeText={setBio}
               multiline
               numberOfLines={4}
@@ -223,7 +223,7 @@ export default function InscriptionTuteurScreen({ navigation }: any) {
                 <View style={styles.tarifInput}>
                   <TextInput
                     style={[styles.input, styles.inputSmall, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
-                    value={val}
+                    selectedValue={val}
                     onChangeText={set}
                     keyboardType="numeric"
                   />
