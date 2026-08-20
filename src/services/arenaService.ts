@@ -1,5 +1,5 @@
 import {
-  getFirestore, doc, getDoc, setDoc, collection,
+  getFirestore, doc, getDoc, setDoc, collection, getDocs, serverTimestamp,
 } from 'firebase/firestore';
 import { auth } from './firebaseConfig';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -61,7 +61,7 @@ export async function getClassementSemaine(weekKey?: string): Promise<ScoreArena
   try {
     const wk = weekKey || getWeekKey();
     const ref = collection(db, 'rankings', wk, 'scores');
-    const snap = await getDocs(q);
+    const snap = await getDocs(ref);
 
     // ✅ Tri côté client (score desc, puis temps asc)
     const scores: ScoreArena[] = snap.docs

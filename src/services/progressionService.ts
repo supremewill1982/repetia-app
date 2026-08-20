@@ -31,7 +31,7 @@ export async function saveProgressionToFirebase() {
     const totalDevoirs = sessions.filter(s => s.type === 'devoir').length;
     let totalQuestions = 0;
     let totalPoints = 0;
-    const statsParMatiere = {};
+      const statsParMatiere: Record<string, { points: number; questions: number }> = {};
     
     sessions.forEach(s => {
       if (s.questions) {
@@ -63,7 +63,7 @@ export async function saveProgressionToFirebase() {
     const datesUniques = [...new Set(sessions.map(s => new Date(s.date).toLocaleDateString('fr-FR')))].sort();
     let serie = datesUniques.length > 0 ? 1 : 0;
     for (let i = 1; i < datesUniques.length; i++) {
-      const diff = (new Date(datesUniques[i]) - new Date(datesUniques[i-1])) / (1000 * 60 * 60 * 24);
+        const diff = (new Date(datesUniques[i]).getTime() - new Date(datesUniques[i-1]).getTime()) / (1000 * 60 * 60 * 24);
       if (diff <= 2) serie++; else serie = 1;
     }
     
@@ -76,7 +76,7 @@ export async function saveProgressionToFirebase() {
       meilleureMatiere,
       pireMatiere,
       progression30Jours: [], // À calculer séparément
-      tempsTotal: Math.round(timeStats.totalApp),
+      tempsTotal: Math.round(timeStats.global),
       badgesCount: 0,
       lastUpdated: serverTimestamp()
     };

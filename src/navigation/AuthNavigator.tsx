@@ -7,6 +7,8 @@ import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 import RoleSelectionScreen from '../screens/RoleSelectionScreen';
+import ConnexionEnfantScreen from '../screens/eleve/Auth/ConnexionEnfantScreen';
+import InscriptionEnfantScreen from '../screens/eleve/Auth/InscriptionEnfantScreen';
 
 const Stack = createStackNavigator();
 
@@ -34,6 +36,17 @@ function AuthNavigator() {
         component={RoleSelectionScreen}
         options={{ title: 'Choisir votre rôle' }}
       />
+      <Stack.Screen
+        name="ConnexionEnfant"
+        component={ConnexionEnfantScreen}
+        options={{ title: 'Connexion Élève' }}
+      />
+      <Stack.Screen
+        name="InscriptionEnfant"
+        component={InscriptionEnfantScreen}
+        options={{ title: 'Inscription Élève' }}
+      />
+
       <Stack.Screen
         name="Login"
         component={LoginScreen}

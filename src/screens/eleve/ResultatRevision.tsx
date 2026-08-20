@@ -24,6 +24,7 @@ export default function ResultatRevision({ route, navigation }: any) {
   const { score, scoreMax, noteSur20: noteSur20Prop, reponses, matiere, type = 'revision' } = route.params || {};
 
   const [saving, setSaving]             = useState(true);
+  const sauvegardeEffectuee = useRef(false);
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType]       = useState<'success'|'error'|'info'>('success');
@@ -76,6 +77,13 @@ export default function ResultatRevision({ route, navigation }: any) {
   };
 
   const sauvegarderResultats = async () => {
+    if (sauvegardeEffectuee.current) {
+      console.log('⚠️ Sauvegarde déjà effectuée, appel ignoré');
+      return;
+    }
+
+    sauvegardeEffectuee.current = true;
+
     try {
       setSaving(true);
       const sessionComplete = {
@@ -108,8 +116,8 @@ export default function ResultatRevision({ route, navigation }: any) {
         await offlineQueueService.addToQueue(sessionComplete);
       }
 
-      await checkAndNotifyAfterSession(noteSur20, matiere || 'Général');
-      await checkAndNotifySerie();
+        await checkAndNotifyAfterSession(sessionComplete, score, scoreMax, reponses || []);
+        await checkAndNotifySerie(0, userId || "", "");
 
       // ✅ Vérifier badges ICI (dans ResultatRevision, pas dans QuestionRevision)
       const nouveaux = await verifierEtDebloquerBadges();

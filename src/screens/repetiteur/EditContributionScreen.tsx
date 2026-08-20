@@ -6,7 +6,7 @@ import {
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { db, storage } from '../../services/firebaseConfig';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
@@ -82,14 +82,18 @@ const EditContributionScreen = ({ navigation, route }: any) => {
         const asset = result.assets[0];
         const fileInfo = await FileSystem.getInfoAsync(asset.uri);
 
-        if (fileInfo.size > 10 * 1024 * 1024) {
+        if (fileInfo.exists && 'size' in fileInfo && typeof fileInfo.size === 'number' && fileInfo.size > 10 * 1024 * 1024) {
           Alert.alert('Erreur', 'Le fichier est trop grand (max 10Mo)');
           return;
         }
 
         setFormData({...formData, fichier: asset.uri});
         setFileName(asset.name);
-        setFileSize(Math.round(fileInfo.size / 1024));
+        setFileSize(
+            fileInfo.exists && 'size' in fileInfo && typeof fileInfo.size === 'number'
+              ? Math.round(fileInfo.size / 1024)
+              : 0
+          );
       }
     } catch (error) {
       console.error('Erreur sélection fichier:', error);
@@ -143,7 +147,7 @@ const EditContributionScreen = ({ navigation, route }: any) => {
           url: fileUrl,
           nom: fichierNom,
           taille: fileSize,
-          type: fichierNom.split('.').pop().toLowerCase(),
+          type: fichierNom.split('.').pop()?.toLowerCase() || '',
         } : null,
         statut: 'en_modération',
         date_modification: serverTimestamp(),
@@ -184,7 +188,7 @@ const EditContributionScreen = ({ navigation, route }: any) => {
           style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
           placeholder="Titre de votre contribution"
           placeholderTextColor={colors.textMuted}
-          selectedValue={formData.titre}
+          value={formData.titre}
           onChangeText={(text) => setFormData({...formData, titre: text})}
         />
 
@@ -196,7 +200,7 @@ const EditContributionScreen = ({ navigation, route }: any) => {
             style={{ color: colors.text }}
           >
             {MATIERES.map((m) => (
-              <Picker.Item key={m} label={m} selectedValue={m} />
+              <Picker.Item key={m} label={m} value={m} />
             ))}
           </Picker>
         </View>
@@ -209,7 +213,7 @@ const EditContributionScreen = ({ navigation, route }: any) => {
             style={{ color: colors.text }}
           >
             {NIVEAUX.map((n) => (
-              <Picker.Item key={n} label={n} selectedValue={n} />
+              <Picker.Item key={n} label={n} value={n} />
             ))}
           </Picker>
         </View>
@@ -219,7 +223,7 @@ const EditContributionScreen = ({ navigation, route }: any) => {
           style={[styles.textArea, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
           placeholder="Décrivez le contenu de votre contribution..."
           placeholderTextColor={colors.textMuted}
-          selectedValue={formData.description}
+          value={formData.description}
           onChangeText={(text) => setFormData({...formData, description: text})}
           multiline
           numberOfLines={4}
@@ -231,7 +235,7 @@ const EditContributionScreen = ({ navigation, route }: any) => {
           style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
           placeholder="Ex: dérivées, calcul, fonctions"
           placeholderTextColor={colors.textMuted}
-          selectedValue={formData.tags}
+          value={formData.tags}
           onChangeText={(text) => setFormData({...formData, tags: text})}
         />
 
@@ -240,7 +244,7 @@ const EditContributionScreen = ({ navigation, route }: any) => {
           style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
           placeholder="Ex: 5000"
           placeholderTextColor={colors.textMuted}
-          selectedValue={formData.prix.toString()}
+          value={formData.prix.toString()}
           onChangeText={(text) => setFormData({...formData, prix: text ? parseInt(text) : 0})}
           keyboardType="numeric"
         />

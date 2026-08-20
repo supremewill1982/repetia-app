@@ -18,10 +18,28 @@ import AnimatedWrapper from '../../components/AnimatedWrapper';
 import ModernLoader from '../../components/ModernLoader';
 
 const { width } = Dimensions.get('window');
-const OPENROUTER_API_KEY = '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';
+const OPENROUTER_API_KEY = '';
 const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+interface RecommandationIA {
+  analyse: string;
+  recommandations: string[];
+  encouragement: string;
+  objectif: string;
+}
 
-async function genererRecommandationsIA(statsDetaillees) {
+interface StatsDetaillees {
+  totalRevisions: number;
+  totalQuestions: number;
+  moyenneGenerale: string;
+  serie: number;
+  meilleureMatiere: string;
+  pireMatiere: string;
+  detailsParMatiere: Record<string, { questions: number; points: number; sessions: number }>;
+  nbJoursConsecutifs: number;
+}
+
+
+async function genererRecommandationsIA(statsDetaillees: StatsDetaillees) {
   const prompt = `Tu es un professeur particulier bienveillant et expert en pédagogie. L'élève ci-dessous a besoin de conseils personnalisés pour progresser.
 
 Voici ses statistiques détaillées (issues de ses révisions et devoirs) :
@@ -76,11 +94,11 @@ Ne donne jamais la réponse en dehors du JSON.`;
   }
 }
 
-export default function RecommandationsIAScreen({ navigation }) {
+export default function RecommandationsIAScreen({ navigation }: any) {
   const { colors } = useTheme();
   const [loading, setLoading] = useState(true);
-  const [recommandations, setRecommandations] = useState(null);
-  const [stats, setStats] = useState(null);
+    const [recommandations, setRecommandations] = useState<RecommandationIA | null>(null);
+    const [stats, setStats] = useState<StatsDetaillees | null>(null);
 
   useEffect(() => {
     chargerRecommandations();
@@ -103,15 +121,15 @@ export default function RecommandationsIAScreen({ navigation }) {
 
       // Calculer des stats détaillées
       let totalQuestions = 0, totalPoints = 0;
-      const matieresStats = {};
+        const matieresStats: Record<string, { questions: number; points: number; sessions: number }> = {};
       let meilleureMatiere = { nom: '', note: 0 };
       let pireMatiere = { nom: '', note: 2 };
       let progression = 0;
       let serie = 0;
-      const datesUniques = [];
+        const datesUniques: string[] = [];
 
       sessions.forEach(s => {
-        const m = s.matiere || 'Général';
+          const m = s.matiere || 'Général';
         if (!matieresStats[m]) matieresStats[m] = { questions: 0, points: 0, sessions: 0 };
         if (s.questions) {
           s.questions.forEach(q => {
@@ -129,12 +147,12 @@ export default function RecommandationsIAScreen({ navigation }) {
       datesUniques.sort();
       serie = 1;
       for (let i = 1; i < datesUniques.length; i++) {
-        const diff = (new Date(datesUniques[i]) - new Date(datesUniques[i-1])) / (1000 * 3600 * 24);
+          const diff = (new Date(datesUniques[i]).getTime() - new Date(datesUniques[i-1]).getTime()) / (1000 * 3600 * 24);
         if (diff <= 2) serie++;
         else serie = 1;
       }
 
-      for (const [nom, data] of Object.entries(matieresStats)) {
+        for (const [nom, data] of Object.entries(matieresStats) as [string, { questions: number; points: number; sessions: number }][]) {
         const noteMoyenne = data.questions > 0 ? (data.points / data.questions) : 0;
         if (noteMoyenne > meilleureMatiere.note) meilleureMatiere = { nom, note: noteMoyenne };
         if (noteMoyenne < pireMatiere.note) pireMatiere = { nom, note: noteMoyenne };

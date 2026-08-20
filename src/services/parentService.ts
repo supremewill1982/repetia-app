@@ -11,7 +11,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import Constants from 'expo-constants';
 import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { auth } from './firebaseConfig';
 
 const db     = getFirestore();
@@ -87,25 +87,35 @@ export async function connecterParent(email: string, password: string): Promise<
 // LIAISON PARENT ↔ ENFANT
 // ══════════════════════════════════════════════════
 
-// [CÔTÉ ENFANT] — Génère un code de 6 chiffres valable 10 min
+// [CÔTÉ ENFANT] — Génère un code numérique de 6 chiffres valable 48 h
 export async function genererCodeLiaison(): Promise<string> {
   const user = auth.currentUser;
   if (!user) throw new Error('Non connecté');
 
-  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const characters = '0123456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += characters[Math.floor(Math.random() * characters.length)];
+  }
+
+  const codeFormate = code;
   const infos = await getDoc(doc(db, 'users', user.uid));
 
-  await setDoc(doc(db, 'linkCodes', code), {
-    enfantId:  user.uid,
-    prenom:    infos.data()?.prenom || 'Élève',
-    classe:    infos.data()?.classe || 'Terminale',
-    serie:     infos.data()?.serie  || 'C',
-    email:     user.email,
-    expires:   Date.now() + 10 * 60 * 1000, // 10 minutes
+  await setDoc(doc(db, 'codesLiaison', codeFormate), {
+    code: codeFormate,
+    enfantId: user.uid,
+    enfantPrenom: infos.data()?.prenom || 'Élève',
+    prenom: infos.data()?.prenom || 'Élève',
+    classe: infos.data()?.classe || 'Terminale',
+    serie: infos.data()?.serie || 'C',
+    email: user.email || '',
+    actif: true,
+    expires: Date.now() + 48 * 60 * 60 * 1000,
+    dateCreation: new Date().toISOString(),
     createdAt: serverTimestamp(),
   });
 
-  return code;
+  return codeFormate;
 }
 
 // [CÔTÉ PARENT] — Lier un enfant via le code
@@ -113,39 +123,54 @@ export async function lierCompteEnfant(code: string): Promise<EnfantLie> {
   const user = auth.currentUser;
   if (!user) throw new Error('Non connecté');
 
-  const codeDoc = await getDoc(doc(db, 'linkCodes', code));
+  const codeNormalise = code.trim().toUpperCase();
+
+  const codeDoc = await getDoc(doc(db, 'codesLiaison', codeNormalise));
   if (!codeDoc.exists()) throw new Error('Code invalide ou expiré.');
 
   const data = codeDoc.data();
-  if (data.expires < Date.now()) {
-    await deleteDoc(doc(db, 'linkCodes', code));
+
+  if (data.actif !== true) {
+    throw new Error('Ce code a déjà été utilisé ou désactivé.');
+  }
+
+  if (data.expires && data.expires < Date.now()) {
+    await deleteDoc(doc(db, 'codesLiaison', codeNormalise));
     throw new Error('Ce code a expiré. Demande un nouveau code à ton enfant.');
   }
 
   const enfant: EnfantLie = {
-    uid:          data.enfantId,
-    prenom:       data.prenom,
-    classe:       data.classe,
-    serie:        data.serie,
-    email:        data.email,
+    uid: data.enfantId,
+    prenom: data.prenom || data.enfantPrenom || 'Élève',
+    classe: data.classe || 'Terminale',
+    serie: data.serie || 'C',
+    email: data.email || '',
     dateCreation: new Date().toISOString(),
   };
 
-  // Ajouter l'enfant dans le profil parent
-  const parentDoc = await getDoc(doc(db, 'users', user.uid));
-  const enfants   = parentDoc.data()?.enfants || [];
-  if (!enfants.find((e: any) => e.uid === enfant.uid)) {
-    enfants.push(enfant);
-    await updateDoc(doc(db, 'users', user.uid), { enfants });
+  const parentRef = doc(db, 'users', user.uid);
+  const parentDoc = await getDoc(parentRef);
+
+  if (!parentDoc.exists()) {
+    throw new Error('Profil parent introuvable.');
   }
 
-  // Lier le parent dans le profil enfant
+  const parentData = parentDoc.data();
+  const enfants = parentData.enfants || [];
+
+  if (!enfants.find((e: any) => e.uid === enfant.uid)) {
+    await updateDoc(parentRef, {
+      enfants: [...enfants, enfant],
+    });
+  }
+
   await updateDoc(doc(db, 'users', data.enfantId), {
-    parentId:    user.uid,
-    parentPrenom: parentDoc.data()?.prenom || 'Parent',
+    parentId: user.uid,
+    parentPrenom: parentData.prenom || 'Parent',
   });
 
-  await deleteDoc(doc(db, 'linkCodes', code));
+  await deleteDoc(doc(db, 'codesLiaison', codeNormalise));
+
   return enfant;
 }
 
@@ -622,7 +647,7 @@ ${bienEtre.facteurs.filter(f => f.startsWith('✅')).map(f => `  ${f}`).join('\n
 
   const path = `${FileSystem.cacheDirectory}rapport_${enfant.prenom}_${Date.now()}.txt`;
   await FileSystem.writeAsStringAsync(path, rapport, {
-    encoding: FileSystem.EncodingType.UTF8,
+    encoding: 'utf8',
   });
 
   if (await Sharing.isAvailableAsync()) {

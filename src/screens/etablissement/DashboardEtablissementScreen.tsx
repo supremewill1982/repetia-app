@@ -50,16 +50,16 @@ const DashboardEtablissementScreen = ({ navigation }: any) => {
         where('statut', '==', 'validé')
       );
       const contributionsSnapshot = await getDocs(contributionsQuery);
-      const contributions = contributionsSnapshot.docs
+      const contributions: Array<Record<string, any>> = contributionsSnapshot.docs
         .map(doc => ({ id: doc.id, ...doc.data() }))
-        .sort((a, b) => b.date_soumission - a.date_soumission)
+        .sort((a: Record<string, any>, b: Record<string, any>) => Number(b.date_soumission) - Number(a.date_soumission))
         .slice(0, 5);
       setRecentContributions(contributions);
 
       // Charger les meilleurs répétiteurs
       const repetiteursQuery = query(collection(db, 'users'), where('role', '==', 'repetiteur'));
       const repetiteursSnapshot = await getDocs(repetiteursQuery);
-      const repetiteurs = repetiteursSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const repetiteurs: Array<Record<string, any>> = repetiteursSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       const sortedRepetiteurs = repetiteurs
         .sort((a, b) => (b.stats?.cours || 0) - (a.stats?.cours || 0))
         .slice(0, 3);
@@ -109,10 +109,10 @@ const DashboardEtablissementScreen = ({ navigation }: any) => {
           <MaterialCommunityIcons name="office-building" size={40} color={colors.primary} />
           <View style={styles.etablissementDetails}>
             <Text style={[styles.etablissementName, { color: colors.text }]}>
-              {userData?.nom || 'Mon Établissement'}
+              {typeof userData?.nom === 'string' ? userData.nom : 'Mon Établissement'}
             </Text>
             <Text style={[styles.etablissementType, { color: colors.textMuted }]}>
-              {userData?.type || 'Lycée'} - {userData?.ville || 'Libreville'}
+              {typeof userData?.type === 'string' ? userData.type : 'Lycée'} - {typeof userData?.ville === 'string' ? userData.ville : 'Libreville'}
             </Text>
           </View>
         </View>

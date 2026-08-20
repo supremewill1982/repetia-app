@@ -1,44 +1,143 @@
+import { useAppTimeTracking } from './src/hooks/useAppTimeTracking';
+import { useEffect, useRef } from 'react';
+import { startPeriodicSync, stopPeriodicSync } from './src/services/periodicSyncService';
 import React from 'react';
+import { Linking } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
+import { mettreAJourActiviteLive } from './src/services/parentService';
+import { auth } from './src/services/firebaseConfig';
+
 import AuthNavigator from './src/navigation/AuthNavigator';
 import RepetiteurNavigator from './src/navigation/RepetiteurNavigator';
 import EtablissementNavigator from './src/navigation/EtablissementNavigator';
 import AdminNavigator from './src/navigation/AdminNavigator';
 import ParentNavigator from './src/navigation/ParentNavigator';
 import EleveNavigator from './src/navigation/EleveNavigator';
+
 import { View, ActivityIndicator } from 'react-native';
 
-// Composant principal de l'application
+const navigationRef = createNavigationContainerRef<any>();
+
 function AppContent() {
-  const { user, loading } = useAuth();
+  const pendingParentCode = useRef<string | null>(null);
+
+  const { user, userRole, loading } = useAuth();
   const { colors } = useTheme();
+
+  useAppTimeTracking();
+
+  // ── Liens d'invitation parent ─────────────────────────────
+  useEffect(() => {
+    const traiterLien = (url: string) => {
+      try {
+        if (!url.startsWith('repetia://')) return;
+
+        const parsed = new URL(url);
+
+        if (parsed.hostname !== 'lier-parent') return;
+
+        const code = parsed.searchParams.get('code');
+
+        if (code && /^\\d{6}$/.test(code)) {
+          console.log('🔗 Lien parent reçu, code:', code);
+
+          pendingParentCode.current = code;
+
+          if (auth.currentUser) {
+            setTimeout(() => {
+              if (navigationRef.isReady()) {
+                navigationRef.navigate('ParentLier', { code });
+                pendingParentCode.current = null;
+              }
+            }, 500);
+          }
+        }
+      } catch (e) {
+        console.error('❌ Erreur traitement lien:', e);
+      }
+    };
+
+    Linking.getInitialURL().then(url => {
+      if (url) traiterLien(url);
+    });
+
+    const subscription = Linking.addEventListener('url', event => {
+      traiterLien(event.url);
+    });
+
+    return () => subscription.remove();
+  }, [user]);
+
+  // Si le lien a été ouvert avant que l'authentification
+  // parent soit disponible, on effectue la navigation ensuite.
+  useEffect(() => {
+    if (!user || userRole !== 'parent') return;
+
+    const code = pendingParentCode.current;
+
+    if (!code || !navigationRef.isReady()) return;
+
+    setTimeout(() => {
+      if (navigationRef.isReady()) {
+        navigationRef.navigate('ParentLier', { code });
+        pendingParentCode.current = null;
+      }
+    }, 500);
+  }, [user, userRole]);
+
+
+  useEffect(() => {
+    if (user) {
+      startPeriodicSync(5);
+      console.log('✅ Synchronisation périodique démarrée');
+    } else {
+      stopPeriodicSync();
+    }
+
+    return () => {
+      stopPeriodicSync();
+    };
+  }, [user]);
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
-        <ActivityIndicator size="large" color={colors.primary} />
+      <View
+        style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: colors.background,
+        }}
+      >
+        <ActivityIndicator
+          size="large"
+          color={colors.primary}
+        />
       </View>
     );
   }
 
   return (
     <>
-      <StatusBar style={colors.mode === 'dark' ? 'light' : 'dark'} />
-      <NavigationContainer>
+      <StatusBar style="auto" />
+
+      <NavigationContainer ref={navigationRef}>
         {user ? (
-          user.role === 'admin' ? (
+          userRole === 'admin' ? (
             <AdminNavigator />
-          ) : user.role === 'etablissement' ? (
-            <EtablissementNavigator />
-          ) : user.role === 'repetiteur' ? (
-            <RepetiteurNavigator />
-          ) : user.role === 'parent' ? (
+          ) : userRole === 'parent' ? (
             <ParentNavigator />
+          ) : userRole === 'eleve' ? (
+            <EleveNavigator />
+          ) : userRole === 'repetiteur' ? (
+            <RepetiteurNavigator />
+          ) : userRole === 'etablissement' ? (
+            <EtablissementNavigator />
           ) : (
-            <EleveNavigator />  // ✅ Rôle par défaut : élève
+            <AuthNavigator />
           )
         ) : (
           <AuthNavigator />
@@ -48,7 +147,6 @@ function AppContent() {
   );
 }
 
-// Composant racine avec les providers
 export default function App() {
   return (
     <ThemeProvider>

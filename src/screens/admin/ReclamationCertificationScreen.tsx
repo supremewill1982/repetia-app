@@ -115,7 +115,7 @@ const ReclamationCertificationScreen = ({ navigation }: any) => {
             style={{ color: colors.text, width: 180 }}
           >
             {STATUTS.map((s) => (
-              <Picker.Item key={s.value} label={s.label} selectedValue={s.value} />
+              <Picker.Item key={s.value} label={s.label} value={s.value} />
             ))}
           </Picker>
         </View>
@@ -212,7 +212,7 @@ const ReclamationCertificationScreen = ({ navigation }: any) => {
                   style={{ color: colors.text }}
                 >
                   {ACTIONS.map((a) => (
-                    <Picker.Item key={a.value} label={a.label} selectedValue={a.value} />
+                    <Picker.Item key={a.value} label={a.label} value={a.value} />
                   ))}
                 </Picker>
               </View>
@@ -228,7 +228,7 @@ const ReclamationCertificationScreen = ({ navigation }: any) => {
                     }]}
                     placeholder="Votre réponse..."
                     placeholderTextColor={colors.textMuted}
-                    selectedValue={reponse}
+                    value={reponse}
                     onChangeText={setReponse}
                     multiline
                     numberOfLines={4}

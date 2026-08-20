@@ -7,10 +7,10 @@ import * as FileSystem from 'expo-file-system';
 import { useTheme } from '../../context/ThemeContext';
 import { feedback } from '../../services/feedbackService';
 
-export default function PrisePhotoDevoir({ route, navigation }) {
+export default function PrisePhotoDevoir({ route, navigation }: any) {
   const { colors } = useTheme();
   const { matiere } = route.params || {};
-  const [image, setImage] = useState(null);
+  const [image, setImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const prendrePhoto = async () => {
@@ -53,14 +53,11 @@ export default function PrisePhotoDevoir({ route, navigation }) {
       // Convertir l'image en base64 pour l'analyse
       const response = await fetch(image);
       const blob = await response.blob();
-      const base64 = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const result = reader.result as string;
-          resolve(result.split(',')[1]);
-        };
-        reader.readAsDataURL(blob);
-      });
+        const base64 = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(typeof reader.result === 'string' ? reader.result.split(',')[1] || '' : '');
+          reader.readAsDataURL(blob);
+        });
       
       navigation.navigate('QuestionDevoirAmeliore', { 
         imageBase64: base64, 
@@ -84,7 +81,7 @@ export default function PrisePhotoDevoir({ route, navigation }) {
       });
       if (!result.canceled && result.assets[0]) {
         const base64 = await FileSystem.readAsStringAsync(result.assets[0].uri, {
-          encoding: FileSystem.EncodingType.Base64,
+          encoding: 'base64',
         });
         navigation.navigate('QuestionDevoirAmeliore', {
           imageBase64: base64,

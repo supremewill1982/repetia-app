@@ -8,6 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import { db } from '../../services/firebaseConfig';
 import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Picker } from '@react-native-picker/picker';
 
 const DemanderPaiementScreen = ({ navigation }: any) => {
   const { colors } = useTheme();
@@ -49,7 +50,7 @@ const DemanderPaiementScreen = ({ navigation }: any) => {
       );
       const querySnapshot = await getDocs(q);
       const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setHistorique(data.sort((a, b) => b.date - a.date));
+      setHistorique(data);
     } catch (error) {
       console.error('Erreur chargement données:', error);
       Alert.alert('Erreur', 'Impossible de charger vos données de paiement');
@@ -65,45 +66,68 @@ const DemanderPaiementScreen = ({ navigation }: any) => {
     }
 
     const montantNum = parseInt(montant);
+
     if (isNaN(montantNum) || montantNum <= 0) {
       Alert.alert('Erreur', 'Le montant doit être un nombre positif');
       return;
     }
 
     if (montantNum > solde) {
-      Alert.alert('Erreur', `Le montant ne peut pas dépasser votre solde (${solde.toLocaleString()} FCFA)`);
+      Alert.alert(
+        'Erreur',
+        `Le montant ne peut pas dépasser votre solde (${solde.toLocaleString()} FCFA)`
+      );
       return;
     }
 
     if (!numero.trim()) {
-      Alert.alert('Erreur', 'Veuillez entrer votre numéro de téléphone ou compte');
+      Alert.alert('Erreur', 'Veuillez entrer votre numéro Airtel Money');
+      return;
+    }
+
+    const demandeEnAttente = historique.some(
+      (item) => item.statut === 'en_attente'
+    );
+
+    if (demandeEnAttente) {
+      Alert.alert(
+        'Demande en cours',
+        'Vous avez déjà une demande de paiement en attente.'
+      );
       return;
     }
 
     setSubmitting(true);
+
     try {
       await addDoc(collection(db, 'demandes_paiement'), {
         repetiteur_id: userId,
         repetiteur_nom: `${userData?.prenom || ''} ${userData?.nom || ''}`,
         montant: montantNum,
-        methode: methode,
+        methode: 'airtel_money',
         numero: numero.trim(),
         statut: 'en_attente',
         date: serverTimestamp(),
       });
 
       Alert.alert(
-        'Succès',
-        `Votre demande de paiement de ${montantNum.toLocaleString()} FCFA a été soumise avec succès.`,
-        [{ text: 'OK', onPress: () => {
-          setMontant('');
-          setNumero('');
-          fetchData();
-        }}]
+        'Demande envoyée',
+        `Votre demande de ${montantNum.toLocaleString()} FCFA a été enregistrée. Le paiement sera effectué manuellement par Airtel Money.`,
+        [{
+          text: 'OK',
+          onPress: () => {
+            setMontant('');
+            setNumero('');
+            fetchData();
+          }
+        }]
       );
     } catch (error) {
       console.error('Erreur demande paiement:', error);
-      Alert.alert('Erreur', 'Impossible de soumettre votre demande de paiement');
+      Alert.alert(
+        'Erreur',
+        'Impossible de soumettre votre demande de paiement'
+      );
     } finally {
       setSubmitting(false);
     }
@@ -150,7 +174,7 @@ const DemanderPaiementScreen = ({ navigation }: any) => {
           style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
           placeholder="Ex: 50000"
           placeholderTextColor={colors.textMuted}
-          selectedValue={montant}
+          value={montant}
           onChangeText={setMontant}
           keyboardType="numeric"
         />
@@ -159,11 +183,11 @@ const DemanderPaiementScreen = ({ navigation }: any) => {
         <View style={[styles.pickerContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
           <Picker
             selectedValue={methode}
-            onValueChange={(itemValue) => setMethode(itemValue)}
+            onValueChange={(itemValue: string) => setMethode(itemValue)}
             style={{ color: colors.text }}
           >
             {METHODES.map((m) => (
-              <Picker.Item key={m.value} label={m.label} selectedValue={m.value} />
+              <Picker.Item key={m.value} label={m.label} value={m.value} />
             ))}
           </Picker>
         </View>
@@ -173,7 +197,7 @@ const DemanderPaiementScreen = ({ navigation }: any) => {
           style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
           placeholder={methode === 'compte_bancaire' ? 'Numéro de compte' : '+241 012345678'}
           placeholderTextColor={colors.textMuted}
-          selectedValue={numero}
+          value={numero}
           onChangeText={setNumero}
           keyboardType={methode === 'compte_bancaire' ? 'default' : 'phone-pad'}
         />

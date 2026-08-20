@@ -74,13 +74,13 @@ export default function AudioPhotoFormulaire({ route, navigation }: any) {
 
           <View style={[styles.card, { backgroundColor: colors.card }]}>
             <Text style={[styles.label, { color: colors.textSecondary }]}>📖 Titre du chapitre <Text style={{ color: colors.error }}>*</Text></Text>
-            <TextInput style={[styles.input, { backgroundColor: colors.surface, borderColor: titreChapitre ? cfg.couleur : colors.border, color: colors.text }]} placeholder="Ex: Les dérivées, La photosynthèse..." placeholderTextColor={colors.textMuted} selectedValue={titreChapitre} onChangeText={setTitre} maxLength={100} />
+            <TextInput style={[styles.input, { backgroundColor: colors.surface, borderColor: titreChapitre ? cfg.couleur : colors.border, color: colors.text }]} placeholder="Ex: Les dérivées, La photosynthèse..." placeholderTextColor={colors.textMuted} onChangeText={setTitre} maxLength={100} />
             <Text style={[styles.compteurChars, { color: colors.textMuted }]}>{titreChapitre.length}/100</Text>
           </View>
 
           <View style={[styles.card, { backgroundColor: colors.card }]}>
             <Text style={[styles.label, { color: colors.textSecondary }]}>📝 Section / Partie <Text style={[styles.optionnel, { color: colors.textMuted }]}>(optionnel)</Text></Text>
-            <TextInput style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]} placeholder="Ex: 1.2 Formules clés..." placeholderTextColor={colors.textMuted} selectedValue={titreSection} onChangeText={setSection} maxLength={80} />
+            <TextInput style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]} placeholder="Ex: 1.2 Formules clés..." placeholderTextColor={colors.textMuted} onChangeText={setSection} maxLength={80} />
           </View>
 
           <View style={[styles.card, { backgroundColor: colors.card }]}>
@@ -89,7 +89,7 @@ export default function AudioPhotoFormulaire({ route, navigation }: any) {
                 <Text style={[styles.switchLabel, { color: colors.text }]}>🌍 Partager avec les autres élèves</Text>
                 <Text style={[styles.switchDesc, { color: colors.textMuted }]}>{estPublic ? 'Visible dans Découverte. Les autres peuvent écouter.' : '🔒 Privé — visible uniquement par toi.'}</Text>
               </View>
-              <Switch selectedValue={estPublic} onValueChange={setEstPublic} trackColor={{ false: colors.border, true: colors.primary + '80' }} thumbColor={estPublic ? colors.primary : colors.textMuted} />
+              <Switch value={estPublic} onValueChange={setEstPublic} trackColor={{ false: colors.border, true: colors.primary + '80' }} thumbColor={estPublic ? colors.primary : colors.textMuted} />
             </View>
           </View>
 

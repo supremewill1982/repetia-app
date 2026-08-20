@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useAuth } from '../context/AuthContext';
 import { AppState, AppStateStatus } from 'react-native';
 import {
   startTimeTracking,
@@ -7,6 +8,7 @@ import {
 } from '../services/timeTrackingService';
 
 export function useAppTimeTracking() {
+  const { user } = useAuth();
   const appState   = useRef<AppStateStatus>(AppState.currentState);
   const mounted    = useRef(true);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -16,6 +18,7 @@ export function useAppTimeTracking() {
 
     // ── Démarrage initial
     const init = async () => {
+      if (!user) return;
       if (AppState.currentState === 'active') {
         await _demarrerNavigation();
       }
@@ -30,6 +33,8 @@ export function useAppTimeTracking() {
       const prevState = appState.current;
       appState.current = nextState;
 
+      if (!user) return;
+
       if (prevState !== 'active' && nextState === 'active') {
         // ✅ Retour sur l'app (depuis verrou, autre app, background)
         await _demarrerNavigation();
@@ -41,7 +46,7 @@ export function useAppTimeTracking() {
 
     // ── Polling léger (5s) : assure cohérence si session externe terminée
     intervalRef.current = setInterval(async () => {
-      if (!mounted.current || AppState.currentState !== 'active') return;
+      if (!mounted.current || !user || AppState.currentState !== 'active') return;
       const stats = await getTimeStats();
       // Si aucune session active et app au premier plan → démarrer navigation
       if (!stats.currentSession?.type) {
@@ -53,10 +58,11 @@ export function useAppTimeTracking() {
       mounted.current = false;
       sub.remove();
       if (intervalRef.current) clearInterval(intervalRef.current);
-      // ✅ Flush propre à la destruction du composant
-      _stopperTracking();
+      // Le cleanup React ne peut pas être await.
+      // On lance explicitement le flush sans laisser de session active.
+      void _stopperTracking();
     };
-  }, []);
+  }, [user]);
 }
 
 async function _demarrerNavigation() {

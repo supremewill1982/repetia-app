@@ -99,7 +99,7 @@ const FinanceScreen = ({ navigation }: any) => {
         });
       }
 
-      setTransactions(filtered.sort((a, b) => b.date - a.date));
+        setTransactions(filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
 
       const totalRevenus = filtered
         .filter(t => t.montant > 0)
@@ -233,7 +233,7 @@ const FinanceScreen = ({ navigation }: any) => {
               style={{ color: colors.text, width: 150 }}
             >
               {TYPES.map((t) => (
-                <Picker.Item key={t.value} label={t.label} selectedValue={t.value} />
+                <Picker.Item key={t.value} label={t.label} value={t.value} />
               ))}
             </Picker>
           </View>
@@ -247,7 +247,7 @@ const FinanceScreen = ({ navigation }: any) => {
               style={{ color: colors.text, width: 150 }}
             >
               {MOIS.map((m) => (
-                <Picker.Item key={m.value} label={m.label} selectedValue={m.value} />
+                <Picker.Item key={m.value} label={m.label} value={m.value} />
               ))}
             </Picker>
           </View>
@@ -325,7 +325,7 @@ const FinanceScreen = ({ navigation }: any) => {
               }]}
               placeholder="Ex: 100000"
               placeholderTextColor={colors.textMuted}
-              selectedValue={montantRetrait}
+              value={montantRetrait}
               onChangeText={setMontantRetrait}
               keyboardType="numeric"
             />

@@ -14,9 +14,9 @@ import { getMatiereInfoWithFallback } from '../../services/matieresService';
 import ModernLoader from '../../components/ModernLoader';
 import { feedback } from '../../services/feedbackService';
 
-export default function ToutesQuestionsScreen({ navigation }) {
+export default function ToutesQuestionsScreen({ navigation }: any) {
   const { colors } = useTheme();
-  const [questions, setQuestions] = useState([]);
+  const [questions, setQuestions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -27,13 +27,13 @@ export default function ToutesQuestionsScreen({ navigation }) {
     try {
       setLoading(true);
       const sessions = await getSessionsEnfantFirebase();
-      const toutesQuestions = [];
+        const toutesQuestions: any[] = [];
       sessions.forEach(session => {
         const matiere = session.matiere || (session.type === 'devoir' ? 'Devoir' : 'Révision');
         const matiereInfo = getMatiereInfoWithFallback(matiere);
         if (session.questions && Array.isArray(session.questions)) {
-          session.questions.forEach((q, index) => {
-            if (q && q.note < 2) {
+          session.questions.forEach((q: any, index: number) => {
+            if (q && (q.note || 0) < 2) {
               toutesQuestions.push({
                 id: `${session.id}_${index}`,
                 question: q.question,
@@ -49,7 +49,7 @@ export default function ToutesQuestionsScreen({ navigation }) {
           });
         }
       });
-      const grouped = {};
+        const grouped: Record<string, any> = {};
       toutesQuestions.forEach(q => {
         if (!grouped[q.matiere]) {
           grouped[q.matiere] = {
@@ -104,7 +104,7 @@ export default function ToutesQuestionsScreen({ navigation }) {
                   <Text style={[styles.groupeCount, { color: colors.textSecondary }]}>{groupe.questions.length} question{groupe.questions.length > 1 ? 's' : ''}</Text>
                 </View>
               </View>
-              {groupe.questions.slice(0, 3).map((q, qIdx) => (
+              {groupe.questions.slice(0, 3).map((q: any, qIdx: number) => (
                 <TouchableOpacity key={qIdx} style={[styles.questionItem, { borderBottomColor: colors.border }]} onPress={() => navigation.navigate('QuestionDetail', { question: q.question, reponse: q.reponse, correction: q.feedback, matiere: q.matiere, date: q.date })}>
                   <Text style={[styles.questionTexte, { color: colors.text }]} numberOfLines={2}>{q.question}</Text>
                   <View style={styles.questionFooter}>

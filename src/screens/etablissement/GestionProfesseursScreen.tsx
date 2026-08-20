@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Alert
+  TextInput, Alert, ActivityIndicator
 } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -32,7 +32,7 @@ const GestionProfesseursScreen = ({ navigation }: any) => {
   const filteredProfesseurs = professeurs.filter(prof =>
     prof.nom.toLowerCase().includes(searchQuery.toLowerCase()) ||
     prof.prenom.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    prof.matieres.some(m => m.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    prof.matieres.some((m: string) => m.toLowerCase().includes(searchQuery.toLowerCase())) ||
     prof.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -113,7 +113,7 @@ const GestionProfesseursScreen = ({ navigation }: any) => {
           style={[styles.searchInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
           placeholder="Rechercher un professeur..."
           placeholderTextColor={colors.textMuted}
-          selectedValue={searchQuery}
+          value={searchQuery}
           onChangeText={setSearchQuery}
         />
       </View>
@@ -186,7 +186,7 @@ const GestionProfesseursScreen = ({ navigation }: any) => {
               <TextInput
                 style={[styles.modalInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                 placeholder="Nom de famille"
-                selectedValue={newProfesseur.nom}
+                value={newProfesseur.nom}
                 onChangeText={(text) => setNewProfesseur({...newProfesseur, nom: text})}
               />
 
@@ -194,7 +194,7 @@ const GestionProfesseursScreen = ({ navigation }: any) => {
               <TextInput
                 style={[styles.modalInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                 placeholder="Prénom"
-                selectedValue={newProfesseur.prenom}
+                value={newProfesseur.prenom}
                 onChangeText={(text) => setNewProfesseur({...newProfesseur, prenom: text})}
               />
 
@@ -208,7 +208,7 @@ const GestionProfesseursScreen = ({ navigation }: any) => {
                   >
                     <Picker.Item label="Sélectionnez une matière" value="" />
                     {matieresDisponibles.map((m) => (
-                      <Picker.Item key={m} label={m} selectedValue={m} />
+                      <Picker.Item key={m} label={m} value={m} />
                     ))}
                   </Picker>
                 </View>
@@ -238,7 +238,7 @@ const GestionProfesseursScreen = ({ navigation }: any) => {
               <TextInput
                 style={[styles.modalInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                 placeholder="email@exemple.com"
-                selectedValue={newProfesseur.email}
+                value={newProfesseur.email}
                 onChangeText={(text) => setNewProfesseur({...newProfesseur, email: text})}
                 keyboardType="email-address"
               />
@@ -247,7 +247,7 @@ const GestionProfesseursScreen = ({ navigation }: any) => {
               <TextInput
                 style={[styles.modalInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                 placeholder="+241 012345678"
-                selectedValue={newProfesseur.telephone}
+                value={newProfesseur.telephone}
                 onChangeText={(text) => setNewProfesseur({...newProfesseur, telephone: text})}
                 keyboardType="phone-pad"
               />

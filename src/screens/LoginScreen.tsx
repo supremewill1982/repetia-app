@@ -55,7 +55,7 @@ const LoginScreen = ({ navigation }: any) => {
               style={[styles.input, { color: colors.text }]}
               placeholder="votre@email.com"
               placeholderTextColor={colors.textMuted}
-              selectedValue={email}
+              value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
@@ -69,7 +69,7 @@ const LoginScreen = ({ navigation }: any) => {
               style={[styles.input, { color: colors.text, flex: 1 }]}
               placeholder="Votre mot de passe"
               placeholderTextColor={colors.textMuted}
-              selectedValue={password}
+              value={password}
               onChangeText={setPassword}
               secureTextEntry={!showPassword}
               autoCapitalize="none"

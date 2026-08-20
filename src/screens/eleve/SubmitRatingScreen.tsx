@@ -210,11 +210,17 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 32,
   },
-  backButton: {
-    padding: 12,
-    borderRadius: 8,
-    width: '60%',
-  },
+    successBackButton: {
+      padding: 12,
+      borderRadius: 8,
+      width: "60%",
+      alignItems: "center",
+    },
+    successBackButtonText: {
+      color: "white",
+      fontSize: 16,
+      fontWeight: "bold",
+    },
   backButtonText: {
     color: 'white',
     fontSize: 16,

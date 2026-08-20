@@ -36,7 +36,7 @@ export default function ParentTimeline({ navigation }: any) {
   const renderItem = ({ item: ev, index }: { item: EvenementTimeline; index: number }) => (
     <TouchableOpacity
       style={[styles.evCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
-      onPress={() => ev.sessionData && navigation.navigate('ParentDetail', { session: ev.sessionData })}
+      onPress={() => ev.sessionData && navigation.navigate('ParentSessionDetail', { session: ev.sessionData })}
       activeOpacity={ev.sessionData ? 0.8 : 1}
     >
       {/* Ligne verticale */}

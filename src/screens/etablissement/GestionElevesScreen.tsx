@@ -7,13 +7,13 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
-  Modal
+  Modal, ActivityIndicator
 } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 
-const GestionElevesScreen = ({ navigation }) => {
+const GestionElevesScreen = ({ navigation }: { navigation: { goBack: () => void } }) => {
   const { colors } = useTheme();
   const [eleves, setEleves] = useState([
     { id: '1', nom: 'Dupont', prenom: 'Jean', classe: 'Terminale C', email: 'jean@email.com', telephone: '+241 012345678', date_inscription: '2024-01-15' },
@@ -47,7 +47,7 @@ const GestionElevesScreen = ({ navigation }) => {
     }, 1000);
   };
 
-  const handleDeleteEleve = (id) => {
+  const handleDeleteEleve = (id: string) => {
     Alert.alert('Supprimer', 'Êtes-vous sûr ?', [
       { text: 'Annuler', style: 'cancel' },
       { text: 'Supprimer', style: 'destructive', onPress: () => setEleves(eleves.filter(e => e.id !== id)) }
@@ -72,7 +72,7 @@ const GestionElevesScreen = ({ navigation }) => {
           style={[styles.searchInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
           placeholder="Rechercher..."
           placeholderTextColor={colors.textMuted}
-          selectedValue={searchQuery}
+          value={searchQuery}
           onChangeText={setSearchQuery}
         />
       </View>
@@ -108,14 +108,14 @@ const GestionElevesScreen = ({ navigation }) => {
           <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             <Text style={[styles.modalTitle, { color: colors.text }]}>Ajouter un élève</Text>
             <Text style={[styles.modalLabel, { color: colors.text, marginTop: 16 }]}>Nom *</Text>
-            <TextInput style={[styles.modalInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]} placeholder="Nom" selectedValue={newEleve.nom} onChangeText={(text) => setNewEleve({...newEleve, nom: text})} />
+            <TextInput style={[styles.modalInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]} placeholder="Nom" value={newEleve.nom} onChangeText={(text) => setNewEleve({...newEleve, nom: text})} />
             <Text style={[styles.modalLabel, { color: colors.text, marginTop: 12 }]}>Prénom *</Text>
-            <TextInput style={[styles.modalInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]} placeholder="Prénom" selectedValue={newEleve.prenom} onChangeText={(text) => setNewEleve({...newEleve, prenom: text})} />
+            <TextInput style={[styles.modalInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]} placeholder="Prénom" value={newEleve.prenom} onChangeText={(text) => setNewEleve({...newEleve, prenom: text})} />
             <Text style={[styles.modalLabel, { color: colors.text, marginTop: 12 }]}>Classe *</Text>
             <View style={[styles.pickerContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
               <Picker selectedValue={newEleve.classe} onValueChange={(itemValue) => setNewEleve({...newEleve, classe: itemValue})} style={{ color: colors.text }}>
                 <Picker.Item label="Sélectionnez" value="" />
-                {classes.map((classe) => <Picker.Item key={classe} label={classe} selectedValue={classe} />)}
+                {classes.map((classe) => <Picker.Item key={classe} label={classe} value={classe} />)}
               </Picker>
             </View>
             <View style={styles.modalButtons}>

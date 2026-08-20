@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   TextInput, ActivityIndicator, Alert,
@@ -8,10 +8,25 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { lierCompteEnfant } from '../../services/parentService';
 
-export default function ParentLier({ navigation }: any) {
+export default function ParentLier({ navigation, route }: any) {
   const { colors } = useTheme();
   const [code, setCode]       = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Code transmis automatiquement par un lien RÉPÉTIA
+  useEffect(() => {
+    const codeRecu = route?.params?.code;
+
+    if (typeof codeRecu === 'string') {
+      const codeNettoye = codeRecu
+        .replace(/[^0-9]/g, '')
+        .slice(0, 6);
+
+      if (codeNettoye.length === 6) {
+        setCode(codeNettoye);
+      }
+    }
+  }, [route?.params?.code]);
 
   const handleLier = async () => {
     if (code.length !== 6) {
@@ -50,7 +65,7 @@ export default function ParentLier({ navigation }: any) {
         <Text style={[styles.desc, { color: colors.textSecondary }]}>
           Demandez à votre enfant d'ouvrir RÉPÉTIA et d'aller dans{'\n'}
           Profil → Générer un code parent{'\n\n'}
-          Le code est valable 10 minutes.
+          Le code est valable 48 heures.
         </Text>
 
         {/* Input code */}
@@ -62,7 +77,7 @@ export default function ParentLier({ navigation }: any) {
           }]}
           placeholder="000000"
           placeholderTextColor={colors.textMuted}
-          selectedValue={code}
+          value={code}
           onChangeText={t => setCode(t.replace(/[^0-9]/g, '').slice(0, 6))}
           keyboardType="numeric"
           maxLength={6}

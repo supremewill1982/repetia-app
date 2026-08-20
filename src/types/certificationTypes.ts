@@ -38,6 +38,4 @@ export interface Reclamation {
   commentaire_admin?: string;
 }
 
-export const COUT_TEST_CERTIFICATION = 5000; // 5000 FCFA
 export const SEUIL_PAIEMENT = 10000; // 10000 FCFA minimum pour demander un paiement
-export const DELAI_RECLAMATION = 7; // 7 jours pour faire une réclamation

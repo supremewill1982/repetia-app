@@ -9,6 +9,7 @@ import ProfilRepetiteurScreen from '../screens/repetiteur/ProfilRepetiteurScreen
 import ContribuerCoursScreen from '../screens/repetiteur/ContribuerCoursScreen';
 import MesCoursScreen from '../screens/repetiteur/MesCoursScreen';
 import CertificationScreen from '../screens/repetiteur/CertificationScreen';
+import TestCertificationScreen from '../screens/repetiteur/TestCertificationScreen';
 import ReclamationScreen from '../screens/repetiteur/ReclamationScreen';
 import EditContributionScreen from '../screens/repetiteur/EditContributionScreen';
 import ContributionDetailsScreen from '../screens/repetiteur/ContributionDetailsScreen';
@@ -62,6 +63,11 @@ function RepetiteurStackNavigator() {
         name="Certification"
         component={CertificationScreen}
         options={{ title: 'Certification' }}
+      />
+      <Stack.Screen
+        name="TestCertification"
+        component={TestCertificationScreen}
+        options={{ title: 'Test de certification' }}
       />
       <Stack.Screen
         name="Reclamation"

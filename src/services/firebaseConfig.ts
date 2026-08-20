@@ -31,19 +31,27 @@ import {
 } from 'firebase/storage';
 
 import {
+  initializeAuth,
   getAuth,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
-  User,
-  sendPasswordResetEmail,
-  updatePassword,
-  updateEmail,
-  reauthenticateWithCredential,
-  EmailAuthProvider
-} from 'firebase/auth';
 
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword,
+    signOut,
+    onAuthStateChanged,
+    User,
+    sendPasswordResetEmail,
+    updatePassword,
+    updateEmail,
+    reauthenticateWithCredential,
+    EmailAuthProvider
+  } from "firebase/auth";
+import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
+
+// Firebase Auth RN : le build React Native expose cette fonction au runtime.
+// require évite le conflit avec les déclarations TypeScript web de Firebase.
+const { getReactNativePersistence } = require('firebase/auth') as {
+  getReactNativePersistence: (storage: typeof ReactNativeAsyncStorage) => unknown;
+};
 // =============================================
 // ✅ CONFIGURATION FIREBASE À MODIFIER
 // =============================================
@@ -69,7 +77,9 @@ const app = initializeApp(firebaseConfig);
 // =============================================
 const db = getFirestore(app);
 const storage = getStorage(app);
-const auth = getAuth(app);
+const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(ReactNativeAsyncStorage) as any,
+});
 
 // =============================================
 // 🔥 EXPORT DE TOUT CE DONT ON A BESOIN

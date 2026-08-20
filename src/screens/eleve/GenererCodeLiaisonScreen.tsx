@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Share } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
@@ -27,11 +27,30 @@ export default function GenererCodeLiaisonScreen({ navigation }: any) {
     try {
       const c = await genererCodeLiaison();
       setCode(c);
-      setSec(600); // 10 minutes
+      setSec(48 * 60 * 60); // 48 heures
     } catch (e: any) {
       console.error(e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const partagerCode = async () => {
+    if (!code) return;
+
+    try {
+      await Share.share({
+        message:
+          `Bonjour ! 👋\n\n` +
+          `Je veux te permettre de suivre ma progression sur RÉPÉTIA.\n\n` +
+          `👉 Appuie sur ce lien pour ouvrir RÉPÉTIA et lier mon compte :\n` +
+          `repetia://lier-parent?code=${code}\n\n` +
+          `Code de liaison : ${code}\n\n` +
+          `Le code est valable 48 heures.`,
+        title: 'Lier mon compte RÉPÉTIA',
+      });
+    } catch (e) {
+      console.error('Erreur partage code:', e);
     }
   };
 
@@ -54,10 +73,30 @@ export default function GenererCodeLiaisonScreen({ navigation }: any) {
         </Text>
 
         {code ? (
-          <View style={[styles.codeBox, { backgroundColor: colors.surface, borderColor: colors.primary }]}>
-            <Text style={[styles.code, { color: colors.primary }]}>{code}</Text>
-            <Text style={[styles.timer, { color: colors.textMuted }]}>
-              Expire dans {formatTimer(secondes)}
+          <View style={styles.codeSection}>
+            <View style={[styles.codeBox, { backgroundColor: colors.surface, borderColor: colors.primary }]}>
+              <Text style={[styles.codeLabel, { color: colors.textSecondary }]}>
+                Ton code de liaison
+              </Text>
+
+              <Text style={[styles.code, { color: colors.primary }]}>{code}</Text>
+
+              <Text style={[styles.timer, { color: colors.textMuted }]}>
+                Valable encore {formatTimer(secondes)}
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.shareBtn, { backgroundColor: colors.primary }]}
+              onPress={partagerCode}
+              activeOpacity={0.8}
+            >
+              <MaterialCommunityIcons name="share-variant" size={23} color="white" />
+              <Text style={styles.shareBtnTxt}>Partager avec mon parent</Text>
+            </TouchableOpacity>
+
+            <Text style={[styles.shareHint, { color: colors.textSecondary }]}>
+              WhatsApp, SMS, Messages, e-mail et autres applications de partage
             </Text>
           </View>
         ) : (
@@ -93,11 +132,40 @@ const styles = StyleSheet.create({
   backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center' },
   headerTitre: { fontSize: 18, fontWeight: '700', color: 'white' },
   content: { flex: 1, padding: 32, alignItems: 'center', gap: 20 },
+  codeSection: {
+    width: '100%',
+    alignItems: 'center',
+    gap: 16,
+  },
   titre: { fontSize: 24, fontWeight: '800', textAlign: 'center' },
   desc:  { fontSize: 14, textAlign: 'center', lineHeight: 22 },
   codeBox: { alignItems: 'center', padding: 32, borderRadius: 24, borderWidth: 2, width: '100%', gap: 12 },
-  code:  { fontSize: 48, fontWeight: '900', letterSpacing: 12 },
+  codeLabel: { fontSize: 14, fontWeight: '600' },
+  code:  { fontSize: 48, fontWeight: '900', letterSpacing: 8 },
   timer: { fontSize: 14 },
+
+  shareBtn: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingHorizontal: 24,
+    paddingVertical: 17,
+    borderRadius: 16,
+  },
+  shareBtnTxt: {
+    color: 'white',
+    fontSize: 17,
+    fontWeight: '800',
+  },
+  shareHint: {
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 18,
+    marginTop: -8,
+  },
+
   genBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 32, paddingVertical: 16, borderRadius: 16 },
   genBtnTxt: { color: 'white', fontSize: 16, fontWeight: '700' },
   regenBtn: { padding: 12, borderRadius: 12, borderWidth: 1 },

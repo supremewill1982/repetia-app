@@ -82,7 +82,7 @@ export default function ParentAuthScreen() {
                 style={[styles.input, { color: colors.text }]}
                 placeholder="Votre prénom"
                 placeholderTextColor={colors.textMuted}
-                selectedValue={prenom}
+                value={prenom}
                 onChangeText={setPrenom}
               />
             </View>
@@ -94,7 +94,7 @@ export default function ParentAuthScreen() {
               style={[styles.input, { color: colors.text }]}
               placeholder="Email"
               placeholderTextColor={colors.textMuted}
-              selectedValue={email}
+              value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
@@ -107,7 +107,7 @@ export default function ParentAuthScreen() {
               style={[styles.input, { color: colors.text }]}
               placeholder="Mot de passe"
               placeholderTextColor={colors.textMuted}
-              selectedValue={password}
+              value={password}
               onChangeText={setPassword}
               secureTextEntry={!showPass}
             />

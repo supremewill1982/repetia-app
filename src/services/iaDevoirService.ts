@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const OPENROUTER_API_KEY = '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';
+const OPENROUTER_API_KEY = '';
 const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
 export interface QuestionDevoir {

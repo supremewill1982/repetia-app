@@ -117,7 +117,7 @@ const ModerationScreen = ({ navigation }: any) => {
             style={{ color: colors.text, width: 180 }}
           >
             {STATUTS.map((s) => (
-              <Picker.Item key={s.value} label={s.label} selectedValue={s.value} />
+              <Picker.Item key={s.value} label={s.label} value={s.value} />
             ))}
           </Picker>
         </View>
@@ -217,7 +217,7 @@ const ModerationScreen = ({ navigation }: any) => {
                     }]}
                     placeholder="Expliquez la raison du rejet ou de la demande de modification..."
                     placeholderTextColor={colors.textMuted}
-                    selectedValue={commentaire}
+                    value={commentaire}
                     onChangeText={setCommentaire}
                     multiline
                     numberOfLines={3}
@@ -234,7 +234,7 @@ const ModerationScreen = ({ navigation }: any) => {
                   style={{ color: colors.text }}
                 >
                   {ACTIONS.map((a) => (
-                    <Picker.Item key={a.value} label={a.label} selectedValue={a.value} />
+                    <Picker.Item key={a.value} label={a.label} value={a.value} />
                   ))}
                 </Picker>
               </View>

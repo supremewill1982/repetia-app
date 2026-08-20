@@ -14,7 +14,7 @@ import { getMatiereInfoWithFallback } from '../../services/matieresService';
 import { feedback } from '../../services/feedbackService';
 import { ajouterQuestionEnAttente, supprimerQuestionEnAttente } from '../../services/pendingQuestionsService';
 
-export default function QuestionDetailScreen({ route, navigation }) {
+export default function QuestionDetailScreen({ route, navigation }: any) {
   const { colors } = useTheme();
   const { question, reponse, correction, matiere, date, questionId, sessionId } = route.params || {};
   
@@ -41,7 +41,10 @@ export default function QuestionDetailScreen({ route, navigation }) {
               type: 'revision',
               tentativeActuelle: 1,
               tentativesRestantes: 2,
-              reponsesPrecedentes: [reponse]
+              reponsesPrecedentes: [reponse],
+              contenuCours: '',
+              reponseAttendue: correction || '',
+              criteresCorrection: ''
             });
           }
         }
@@ -65,7 +68,7 @@ export default function QuestionDetailScreen({ route, navigation }) {
         
         <View style={styles.headerContent}>
           <View style={[styles.matiereBadge, { backgroundColor: matiereInfo.couleur + '20' }]}>
-            <MaterialCommunityIcons name={matiereInfo.icone} size={14} color={matiereInfo.couleur} />
+            <MaterialCommunityIcons name={matiereInfo.icone as any} size={14} color={matiereInfo.couleur} />
             <Text style={[styles.matiereBadgeText, { color: matiereInfo.couleur }]}>{matiere || 'Révision'}</Text>
           </View>
           <Text style={styles.dateText}>{dateFormatee}</Text>

@@ -11,7 +11,7 @@ import { getMatiereInfoWithFallback } from '../../services/matieresService';
 import ModernLoader from '../../components/ModernLoader';
 import { feedback } from '../../services/feedbackService';
 
-export default function QuestionsEnAttenteScreen({ navigation }) {
+export default function QuestionsEnAttenteScreen({ navigation }: any) {
   const { colors } = useTheme();
   const [questions, setQuestions] = useState<PendingQuestion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,7 +97,7 @@ export default function QuestionsEnAttenteScreen({ navigation }) {
               <View key={q.id} style={[styles.questionCard, { backgroundColor: colors.surface }]}>
                 <View style={styles.cardHeader}>
                   <View style={[styles.matiereBadge, { backgroundColor: matiereInfo.couleur + '20' }]}>
-                    <MaterialCommunityIcons name={matiereInfo.icone} size={14} color={matiereInfo.couleur} />
+                    <MaterialCommunityIcons name={matiereInfo.icone as any} size={14} color={matiereInfo.couleur} />
                     <Text style={[styles.matiereText, { color: matiereInfo.couleur }]}>{q.matiere}</Text>
                   </View>
                   <View style={[styles.tentativeBadge, { backgroundColor: tentativeColor + '20' }]}>

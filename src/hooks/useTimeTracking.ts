@@ -1,4 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
+interface TimePerSubject {
+  matiere: string;
+  revision: number;
+  devoir: number;
+  navigation: number;
+  total: number;
+}
+
 import { useFocusEffect } from '@react-navigation/native';
 import { 
   getTimeStats, 
@@ -26,7 +34,7 @@ export function useTimeTracking() {
     devoirsMinutes: 0,
     navigationMinutes: 0
   });
-  const [timePerSubject, setTimePerSubject] = useState([]);
+  const [timePerSubject, setTimePerSubject] = useState<TimePerSubject[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchStats = useCallback(async () => {

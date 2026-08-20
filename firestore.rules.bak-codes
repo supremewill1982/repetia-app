@@ -1,0 +1,116 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Utilisateurs — chacun accède à ses propres données
+    match /users/{userId} {
+      // L'utilisateur accède à son propre profil.
+      // Un parent peut également lire le profil de son enfant lié
+      // afin de suivre son activité en temps réel.
+      allow read: if request.auth != null
+        && (
+          request.auth.uid == userId
+          || resource.data.parentId == request.auth.uid
+        );
+
+      allow write: if request.auth != null
+        && request.auth.uid == userId;
+
+      match /{subcollection}/{docId} {
+        allow read, write: if request.auth != null
+          && request.auth.uid == userId;
+      }
+    }
+
+    // Élèves — chacun accède à ses propres données
+    match /enfants/{userId} {
+      allow read, write: if request.auth != null
+        && request.auth.uid == userId;
+
+      match /{subcollection}/{docId} {
+        allow read, write: if request.auth != null
+          && request.auth.uid == userId;
+      }
+    }
+
+    // Parents — chacun accède à ses propres données
+    match /parents/{userId} {
+      allow read, write: if request.auth != null
+        && request.auth.uid == userId;
+
+      match /{subcollection}/{docId} {
+        allow read, write: if request.auth != null
+          && request.auth.uid == userId;
+      }
+    }
+
+    // Rankings — lecture pour tous les utilisateurs authentifiés
+    match /rankings/{weekKey}/scores/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && request.auth.uid == userId;
+    }
+
+    // Sessions élèves
+    match /sessions/{sessionId} {
+
+      // L'élève peut lire ses propres sessions.
+      // Le parent peut lire les sessions de son enfant lié.
+      allow read: if request.auth != null
+        && (
+          resource.data.enfantId == request.auth.uid
+          ||
+          (
+            resource.data.enfantId != null
+            && get(
+              /databases/$(database)/documents/users/$(resource.data.enfantId)
+            ).data.parentId == request.auth.uid
+          )
+        );
+
+      // Une session ne peut être créée que pour
+      // l'utilisateur actuellement authentifié.
+      allow create: if request.auth != null
+        && request.resource.data.enfantId == request.auth.uid;
+
+      // Seul l'élève propriétaire peut modifier sa session.
+      // L'enregistrement ne peut pas être transféré à un autre UID.
+      allow update: if request.auth != null
+        && resource.data.enfantId == request.auth.uid
+        && request.resource.data.enfantId == request.auth.uid;
+
+      // Seul l'élève propriétaire peut supprimer sa session.
+      allow delete: if request.auth != null
+        && resource.data.enfantId == request.auth.uid;
+    }
+
+    // Badges
+    match /badges/{userId} {
+      allow read, write: if request.auth != null
+        && request.auth.uid == userId;
+    }
+
+    // Statistiques de temps — chaque utilisateur accède uniquement à ses propres données
+    match /timeStats/{userId} {
+      allow read, write: if request.auth != null
+        && request.auth.uid == userId;
+    }
+
+    // AudioRévision — Podcasts publics
+    match /podcasts_public/{podcastId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null
+        && request.auth.uid == resource.data.userId;
+    }
+
+    // Likes
+    match /likes/{likeId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow delete: if request.auth != null
+        && request.auth.uid == resource.data.userId;
+    }
+  }
+}

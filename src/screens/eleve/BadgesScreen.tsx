@@ -15,11 +15,11 @@ import BadgeCard from '../../components/BadgeCard';
 import { feedback } from '../../services/feedbackService';
 import ModernLoader from '../../components/ModernLoader';
 
-export default function BadgesScreen({ navigation }) {
+export default function BadgesScreen({ navigation }: { navigation: any }) {
   const { colors } = useTheme();
-  const [badges, setBadges] = useState([]);
+  const [badges, setBadges] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState(null);
+  const [stats, setStats] = useState<any | null>(null);
 
   useEffect(() => {
     chargerBadges();

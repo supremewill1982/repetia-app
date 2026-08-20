@@ -16,6 +16,17 @@ import {
 import { auth } from './firebaseConfig';
 import { normalizeSessions, normalizeMatiere } from './normalizeMatiereService';
 
+interface SessionFirebase {
+  id: string;
+  matiere?: string;
+  type?: string;
+  date: string | Date;
+  questions?: Array<{ note?: number }>;
+    noteSur20?: number;
+  scoreTotal?: number;
+  scoreMax?: number;
+}
+
 // Cache spécifique à l'utilisateur
 let sessionsCache: any = null;
 let lastFetch = 0;
@@ -56,7 +67,7 @@ export async function sauvegarderSessionFirebase(sessionData: any) {
   }
 }
 
-export async function getSessionsEnfantFirebase(forceRefresh = false) {
+export async function getSessionsEnfantFirebase(forceRefresh = false): Promise<SessionFirebase[]> {
   const user = auth.currentUser;
   if (!user) {
     console.log('⚠️ getSessionsEnfantFirebase: utilisateur non connecté');
@@ -88,7 +99,7 @@ export async function getSessionsEnfantFirebase(forceRefresh = false) {
     );
     
     const querySnapshot = await getDocs(q);
-    const sessions = [];
+    const sessions: any[] = [];
     
     querySnapshot.forEach((doc) => {
       sessions.push({ id: doc.id, ...doc.data() });
@@ -141,7 +152,7 @@ export async function genererCodeLiaison() {
     await setDoc(doc(db, 'codesLiaison', codeFormate), {
       code: codeFormate,
       enfantId: user.uid,
-      enfantPrenom: (await getInfosEnfant()).prenom || 'Enfant',
+        enfantPrenom: (await getInfosEnfant())?.prenom || 'Enfant',
       actif: true,
       dateCreation: new Date().toISOString()
     });
@@ -238,7 +249,7 @@ export function calculerStatsEnfant(sessions: any[]) {
   
   let serie = 1;
   for (let i = 1; i < datesUniques.length; i++) {
-    const diff = (new Date(datesUniques[i]) - new Date(datesUniques[i-1])) / (1000 * 60 * 60 * 24);
+      const diff = (new Date(datesUniques[i]).getTime() - new Date(datesUniques[i-1]).getTime()) / (1000 * 60 * 60 * 24);
     if (diff <= 2) {
       serie++;
     } else {
@@ -246,7 +257,7 @@ export function calculerStatsEnfant(sessions: any[]) {
     }
   }
 
-  const pointsFaibles = [];
+  const pointsFaibles: any[] = [];
   sessions.forEach(s => {
     s.questions?.forEach((q: any) => {
       if (q.note < 2) {

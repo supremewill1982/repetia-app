@@ -7,12 +7,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { getStatutPremium, PLANS_INFO, Plan, StatutPremium } from '../../services/premiumService';
+import { useAuth } from '../../context/AuthContext';
 
 // ⚠️ Remplace par ton vrai numéro WhatsApp
 const WHATSAPP_NUMBER = '24160217098';
 
 export default function AbonnementScreen({ navigation }: any) {
   const { colors } = useTheme();
+  const { user } = useAuth();
   const [statut, setStatut] = useState<StatutPremium | null>(null);
   const [loading, setLoading] = useState(true);
   const [planChoisi, setPlanChoisi] = useState<Plan | null>(null);
@@ -29,7 +31,7 @@ export default function AbonnementScreen({ navigation }: any) {
     const message = `Bonjour ! Je veux m'abonner à RÉPÉTIA.\n\n` +
       `📦 Plan : ${info.emoji} ${info.nom}\n` +
       `💰 Prix : ${info.prix.toLocaleString()} CFA/mois\n\n` +
-      `Mon email de compte : [ton email]\n\n` +
+      `Mon email de compte : ${user?.email || ''}\n\n` +
       `Comment procéder au paiement Mobile Money ?`;
 
     const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;

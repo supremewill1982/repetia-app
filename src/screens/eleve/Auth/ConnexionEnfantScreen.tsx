@@ -15,7 +15,6 @@ const db = getFirestore();
 
 export default function ConnexionEnfantScreen({ navigation }: any) {
   const { colors } = useTheme();
-  const { setUserRole } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -29,21 +28,17 @@ export default function ConnexionEnfantScreen({ navigation }: any) {
 
     setLoading(true);
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
-      const userId = userCredential.user.uid;
+      await signInWithEmailAndPassword(
+        auth,
+        email.trim(),
+        password,
+      );
 
-      // Vérifier que c'est bien un compte élève
-      const userDoc = await getDoc(doc(db, 'users', userId));
-      const userData = userDoc.data();
-
-      if (userData?.role !== 'eleve') {
-        await auth.signOut();
-        Alert.alert('Accès refusé', 'Cet espace est réservé aux élèves. Utilise l\'application parent si besoin.');
-        return;
-      }
+      // Firebase Auth déclenche AuthContext.
+      // Le rôle sera déterminé exclusivement depuis Firestore.
 
       // Connexion réussie
-      navigation.replace('EleveNavigator');
+
     } catch (error: any) {
       let message = 'Erreur de connexion. Vérifie vos identifiants.';
       if (error.code === 'auth/user-not-found') message = 'Aucun compte trouvé avec cet email.';
@@ -78,7 +73,7 @@ export default function ConnexionEnfantScreen({ navigation }: any) {
               style={[styles.input, { color: colors.text }]}
               placeholder="Email"
               placeholderTextColor={colors.textMuted}
-              selectedValue={email}
+              
               onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
@@ -91,7 +86,7 @@ export default function ConnexionEnfantScreen({ navigation }: any) {
               style={[styles.input, { color: colors.text }]}
               placeholder="Mot de passe"
               placeholderTextColor={colors.textMuted}
-              selectedValue={password}
+              
               onChangeText={setPassword}
               secureTextEntry={!showPassword}
             />
@@ -131,7 +126,7 @@ export default function ConnexionEnfantScreen({ navigation }: any) {
           </Text>
           <TouchableOpacity
             style={[styles.parentBtn, { backgroundColor: colors.primary }]}
-            onPress={() => setUserRole('parent')}
+            onPress={() => navigation.navigate('ParentAuthScreen')}
           >
             <MaterialCommunityIcons name="account-heart" size={22} color="white" />
             <Text style={styles.parentBtnTxt}>Accéder à l'espace parent</Text>

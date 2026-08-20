@@ -9,6 +9,13 @@ import { db } from '../../services/firebaseConfig';
 import { doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
+type StatutAction = {
+  label: string;
+  action: () => void;
+  color: string;
+  icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+};
+
 const ContributionDetailsScreen = ({ navigation, route }: any) => {
   const { colors } = useTheme();
   const { userId } = useAuth();
@@ -117,7 +124,7 @@ const ContributionDetailsScreen = ({ navigation, route }: any) => {
     return colorsMap[statut] || colors.textMuted;
   };
 
-  const getStatutActions = (statut: string) => {
+  const getStatutActions = (statut: string): StatutAction[] => {
     switch (statut) {
       case 'validé':
         return [

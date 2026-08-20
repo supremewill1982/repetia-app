@@ -10,7 +10,7 @@ import { useTimeTracking } from '../../hooks/useTimeTracking';
 import { useFocusEffect } from '@react-navigation/native';
 import ModernLoader from '../../components/ModernLoader';
 
-export default function ProgressionScreen({ navigation }) {
+export default function ProgressionScreen({ navigation }: any) {
   const { colors } = useTheme();
   const { userData } = useAuth();
   const { timeSummary, refresh: refreshTime } = useTimeTracking();
@@ -26,7 +26,7 @@ export default function ProgressionScreen({ navigation }) {
     meilleureMatiere: '',
     pireMatiere: '',
   });
-  const [dernieresSessions, setDernieresSessions] = useState([]);
+  const [dernieresSessions, setDernieresSessions] = useState<any[]>([]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -51,7 +51,7 @@ export default function ProgressionScreen({ navigation }) {
       let totalPointsRevisions = 0, totalQuestionsRevisions = 0;
       let totalPointsDevoirs = 0, totalQuestionsDevoirs = 0;
       let questionsReussies = 0;
-      const statsParMatiere = {};
+      const statsParMatiere: Record<string, { points: number; questions: number }> = {};
       
       sessions.forEach(s => {
         const isDevoir = s.type === 'devoir';
@@ -90,7 +90,7 @@ export default function ProgressionScreen({ navigation }) {
       const datesUniques = [...new Set(sessions.map(s => new Date(s.date).toLocaleDateString('fr-FR')))].sort();
       let serie = datesUniques.length > 0 ? 1 : 0;
       for (let i = 1; i < datesUniques.length; i++) {
-        const diff = (new Date(datesUniques[i]) - new Date(datesUniques[i-1])) / (1000 * 60 * 60 * 24);
+          const diff = (new Date(datesUniques[i]).getTime() - new Date(datesUniques[i-1]).getTime()) / (1000 * 60 * 60 * 24);
         if (diff <= 2) serie++; else serie = 1;
       }
       
@@ -99,7 +99,7 @@ export default function ProgressionScreen({ navigation }) {
       
       const dernieres = sessions.slice(-5).reverse().map(s => {
         const matiereInfo = getMatiereInfoWithFallback(s.matiere || (s.type === 'devoir' ? 'Devoir' : 'Révision'));
-        const note = s.scoreTotal ? Math.round((s.scoreTotal / s.scoreMax) * 20) : 0;
+        const note = s.scoreTotal && s.scoreMax ? Math.round((s.scoreTotal / s.scoreMax) * 20) : 0;
         return {
           id: s.id,
           date: new Date(s.date).toLocaleDateString('fr-FR'),
@@ -130,19 +130,19 @@ export default function ProgressionScreen({ navigation }) {
     }
   };
 
-  const getNoteColor = (note) => {
+  const getNoteColor = (note: number) => {
     if (note < 10) return '#f44336';
     if (note < 15) return '#FF9800';
     return '#4CAF50';
   };
 
-  if (loading) return <ModernLoader visible={true} type="chart-line" message="Analyse de ta progression..." />;
+  if (loading) return <ModernLoader visible={true} type="brain" message="Analyse de ta progression..." />;
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       <LinearGradient colors={[colors.primary, colors.secondary]} style={styles.header}>
         <Text style={styles.headerTitle}>Ma progression</Text>
-        <Text style={styles.headerSubtitle}>{userData?.prenom || 'Élève'}, voici tes statistiques</Text>
+        <Text style={styles.headerSubtitle}>{typeof userData?.prenom === 'string' ? userData.prenom : 'Élève'}, voici tes statistiques</Text>
       </LinearGradient>
 
       {/* STATISTIQUES */}

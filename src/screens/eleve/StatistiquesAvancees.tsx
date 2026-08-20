@@ -10,7 +10,7 @@ import { useTimeTracking } from '../../hooks/useTimeTracking';
 import { useFocusEffect } from '@react-navigation/native';
 import ModernLoader from '../../components/ModernLoader';
 
-export default function StatistiquesAvancees({ navigation }) {
+export default function StatistiquesAvancees({ navigation }: any) {
   const { colors } = useTheme();
   const { userData } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -19,8 +19,8 @@ export default function StatistiquesAvancees({ navigation }) {
     totalSessions: 0, totalQuestions: 0, moyenneGlobale: 0,
     devoirs: { count: 0, moyenne: 0, questions: 0 },
     revisions: { count: 0, moyenne: 0, questions: 0 },
-    performancesParMatiere: [],
-    dernieresSessions: []
+      performancesParMatiere: [] as any[],
+      dernieresSessions: [] as any[]
   });
   const [showAllPerf, setShowAllPerf] = useState(false);
   const [showAllSessions, setShowAllSessions] = useState(false);
@@ -38,8 +38,8 @@ export default function StatistiquesAvancees({ navigation }) {
     }, [])
   );
 
-  const noteSur20 = (noteSur2) => Math.round(noteSur2 * 10);
-  const getNoteColor = (note) => {
+  const noteSur20 = (noteSur2: number) => Math.round(noteSur2 * 10);
+  const getNoteColor = (note: number) => {
     if (note < 10) return '#f44336';
     if (note < 15) return '#FF9800';
     return '#4CAF50';
@@ -54,7 +54,7 @@ export default function StatistiquesAvancees({ navigation }) {
 
       let totalPointsDevoirs = 0, totalQuestionsDevoirs = 0, devoirsCount = 0;
       let totalPointsRevisions = 0, totalQuestionsRevisions = 0, revisionsCount = 0;
-      const statsParMatiere = {};
+      const statsParMatiere: Record<string, { questions: number; points: number }> = {};
 
       sessions.forEach(session => {
         const isDevoir = session.type === 'devoir';
@@ -92,8 +92,8 @@ export default function StatistiquesAvancees({ navigation }) {
 
       const dernieresSessions = sessions.slice(-8).reverse().map(s => {
         const matiereInfo = getMatiereInfoWithFallback(s.matiere || (s.type === 'devoir' ? 'Devoir' : 'Révision'));
-        const note = s.scoreTotal ? noteSur20(s.scoreTotal / s.scoreMax) : 0;
-        const heureDebut = s.heureDebut ? new Date(s.heureDebut).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '';
+        const note = s.scoreTotal && s.scoreMax ? noteSur20(s.scoreTotal / s.scoreMax) : 0;
+          const heureDebut = s.date ? new Date(s.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '';
         return { 
           id: s.id,
           date: new Date(s.date).toLocaleDateString('fr-FR'), 
@@ -110,7 +110,7 @@ export default function StatistiquesAvancees({ navigation }) {
     } catch (error) { console.error('Erreur:', error); } finally { setLoading(false); }
   };
 
-  if (loading) return <ModernLoader visible={true} type="chart-line" message="Analyse des statistiques..." />;
+  if (loading) return <ModernLoader visible={true} type="brain" message="Analyse des statistiques..." />;
 
   const displayedPerf = showAllPerf ? stats.performancesParMatiere : stats.performancesParMatiere.slice(0, 5);
   const displayedSessions = showAllSessions ? stats.dernieresSessions : stats.dernieresSessions.slice(0, 5);
@@ -122,7 +122,7 @@ export default function StatistiquesAvancees({ navigation }) {
           <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Statistiques avancées</Text>
-        <Text style={styles.headerSubtitle}>{userData?.prenom || 'Élève'}, ta progression en détail</Text>
+          <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>{String(userData?.prenom || "Élève")}, ta progression en détail</Text>
       </LinearGradient>
 
       {/* Section Temps - 4 indicateurs */}

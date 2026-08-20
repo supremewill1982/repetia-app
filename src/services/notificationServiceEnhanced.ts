@@ -9,11 +9,12 @@ const isExpoGo = Constants.appOwnership === 'expo';
 
 if (!isExpoGo) {
   Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert: true,
-      shouldPlaySound: true,
-      shouldSetBadge: true,
-    }),
+      handleNotification: async () => ({
+        shouldShowBanner: true,
+        shouldShowList: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+      }),
   });
 }
 
@@ -91,7 +92,7 @@ export async function scheduleDailyReminder(hour: number = 18, minute: number = 
       sound: true,
       data: { type: 'reminder' },
     },
-    trigger: { hour, minute, repeats: true },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour, minute },
     identifier: 'daily_reminder',
   });
   console.log(`⏰ Rappel quotidien programmé à ${hour}:${minute}`);
@@ -126,7 +127,7 @@ export async function checkAndNotifyAfterSession(session: any, score: number, sc
 
 // Vérifier et notifier les séries
 export async function checkAndNotifySerie(serie: number, enfantId: string, prenom: string) {
-  const series = { 3: '3 jours !', 7: '7 jours !', 14: '14 jours !', 30: '30 jours !' };
+    const series: Record<number, string> = { 3: "3 jours !", 7: "7 jours !", 14: "14 jours !", 30: "30 jours !" };
   if (series[serie]) {
     await sendToStudent(
       '🔥 Série de révisions !',

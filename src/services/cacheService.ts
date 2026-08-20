@@ -1,10 +1,10 @@
-let sessionsCache = null;
+let sessionsCache: unknown = null;
 let lastFetch = 0;
-let pendingPromise = null;
+let pendingPromise: Promise<unknown> | null = null;
 let isFetching = false;
 const CACHE_DURATION = 60000; // 1 minute
 
-export async function getCachedOrFetch(fetchFunction, forceRefresh = false) {
+export async function getCachedOrFetch(fetchFunction: () => Promise<unknown>, forceRefresh = false) {
   const now = Date.now();
   
   if (!forceRefresh && sessionsCache && (now - lastFetch) < CACHE_DURATION) {

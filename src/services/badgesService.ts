@@ -2,8 +2,14 @@ import { getSessionsEnfantFirebase } from './firebaseEnfantService';
 import { getTimeStats }              from './timeTrackingService';
 import * as SecureStore              from 'expo-secure-store';
 import AsyncStorage                  from '@react-native-async-storage/async-storage';
+import { auth } from './firebaseConfig';
 
-const BADGES_KEY = 'repetia_badges_v3';
+const BADGES_KEY_PREFIX = 'repetia_badges_v3';
+
+const getBadgesKey = (): string | null => {
+  const uid = auth.currentUser?.uid;
+  return uid ? `${BADGES_KEY_PREFIX}_${uid}` : null;
+};
 
 // ── Temps de travail (révision + devoir, pas navigation) ──
 async function getTempsTravailMinutes(): Promise<number> {
@@ -268,14 +274,29 @@ export const BADGES_LIST = [
 // ══════════════════════════════════════════════════
 export async function getBadgesDeBloques(): Promise<any[]> {
   try {
-    const v = await SecureStore.getItemAsync(BADGES_KEY);
+    const key = getBadgesKey();
+
+    // Aucun badge ne doit être accessible hors session authentifiée.
+    if (!key) return [];
+
+    const v = await SecureStore.getItemAsync(key);
     return v ? JSON.parse(v) : [];
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 
-async function _sauvegarderBadges(badges: any[]): Promise<void> {
+export async function sauvegarderBadges(badges: any[]): Promise<void> {
   try {
-    await SecureStore.setItemAsync(BADGES_KEY, JSON.stringify(badges));
+    const key = getBadgesKey();
+
+    // Ne jamais écrire des badges sans UID.
+    if (!key) {
+      console.warn('⚠️ sauvegarderBadges: aucun utilisateur connecté');
+      return;
+    }
+
+    await SecureStore.setItemAsync(key, JSON.stringify(badges));
   } catch (e) {
     console.error('Erreur sauvegarde badges:', e);
   }
@@ -427,7 +448,27 @@ export async function verifierEtDebloquerBadges(): Promise<any[]> {
     }
 
     if (nouveaux.length > 0) {
-      await _sauvegarderBadges([...badgesActuels, ...nouveaux]);
+      const badgesFinals = [...badgesActuels, ...nouveaux];
+
+      // Persistance locale immédiatement.
+      await sauvegarderBadges(badgesFinals);
+
+      // Persistance distante pour le même utilisateur.
+      // Import dynamique pour éviter toute dépendance circulaire.
+      try {
+        const { sauvegarderBadgesFirebase } =
+          require('./badgesFirebaseService');
+
+        if (auth.currentUser?.uid) {
+          await sauvegarderBadgesFirebase(badgesFinals);
+        }
+      } catch (syncError) {
+        // Le badge local reste valide même si Firebase est temporairement indisponible.
+        console.warn(
+          '⚠️ Synchronisation Firebase badges différée:',
+          syncError
+        );
+      }
     }
 
     return nouveaux;

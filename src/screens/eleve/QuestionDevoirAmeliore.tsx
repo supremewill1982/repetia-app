@@ -42,6 +42,7 @@ export default function QuestionDevoirAmeliore({ route, navigation }: any) {
     if (analyseManuelle) {
       setAnalyse(analyseManuelle);
       setQuestions(analyseManuelle.questions);
+      demarrerTempsDevoir();
       setAnalysing(false);
       setLoading(false);
     } else {
@@ -87,6 +88,10 @@ export default function QuestionDevoirAmeliore({ route, navigation }: any) {
       setAnalyse(analyseResult);
       if (analyseResult.questions?.length > 0) {
         setQuestions(analyseResult.questions);
+
+        // ⏱️ Le temps de devoir commence dès que les questions sont disponibles
+        // (lecture, réflexion, réponse ou question ignorée sont comptées)
+        await demarrerTempsDevoir();
       } else {
         setApiError(true);
       }
@@ -293,7 +298,7 @@ export default function QuestionDevoirAmeliore({ route, navigation }: any) {
               style={[styles.textInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
               placeholder="Écris ta réponse..."
               placeholderTextColor={colors.textMuted}
-              selectedValue={reponse}
+             
               onChangeText={setReponse}
               multiline
               numberOfLines={6}

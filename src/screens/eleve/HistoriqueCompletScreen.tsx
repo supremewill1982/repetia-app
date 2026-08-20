@@ -16,15 +16,15 @@ import { getMatiereInfoWithFallback } from '../../services/matieresService';
 import { useFocusEffect } from '@react-navigation/native';
 import ModernLoader from '../../components/ModernLoader';
 
-export default function HistoriqueCompletScreen({ navigation }) {
+export default function HistoriqueCompletScreen({ navigation }: any) {
   const { colors } = useTheme();
-  const [sessions, setSessions] = useState([]);
-  const [filteredSessions, setFilteredSessions] = useState([]);
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [filteredSessions, setFilteredSessions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [showFilterModal, setShowFilterModal] = useState(false);
-  const [matieres, setMatieres] = useState([]);
+  const [matieres, setMatieres] = useState<string[]>([]);
   const [selectedMatiere, setSelectedMatiere] = useState('all');
 
   useFocusEffect(
@@ -114,14 +114,14 @@ export default function HistoriqueCompletScreen({ navigation }) {
     setFilteredSessions(filtered);
   };
 
-  const getNoteColor = (note) => {
+  const getNoteColor = (note: number) => {
     if (!note || isNaN(note)) return '#f44336';
     if (note < 10) return '#f44336';
     if (note < 15) return '#FF9800';
     return '#4CAF50';
   };
 
-  const handleSessionPress = (session) => {
+  const handleSessionPress = (session: any) => {
     // Naviguer vers l'écran de détail avec toutes les questions
     navigation.navigate('DetailsSessionScreen', {
       sessionId: session.id,
@@ -133,7 +133,7 @@ export default function HistoriqueCompletScreen({ navigation }) {
   };
 
   if (loading) {
-    return <ModernLoader visible={true} type="history" message="Chargement de l'historique..." />;
+    return <ModernLoader visible={true} type="book" message="Chargement de l'historique..." />;
   }
 
   return (
@@ -153,7 +153,7 @@ export default function HistoriqueCompletScreen({ navigation }) {
             style={[styles.searchInput, { color: colors.text }]}
             placeholder="Rechercher une matière..."
             placeholderTextColor={colors.textMuted}
-            selectedValue={searchText}
+           
             onChangeText={setSearchText}
           />
           {searchText !== '' && (
@@ -282,7 +282,7 @@ export default function HistoriqueCompletScreen({ navigation }) {
                       setShowFilterModal(false);
                     }}
                   >
-                    <MaterialCommunityIcons name={matiereInfo.icone} size={20} color={matiereInfo.couleur} />
+                    <MaterialCommunityIcons name={matiereInfo.icone as any} size={20} color={matiereInfo.couleur} />
                     <Text style={[styles.matiereOptionText, { color: colors.text }]}>{matiere}</Text>
                   </TouchableOpacity>
                 );

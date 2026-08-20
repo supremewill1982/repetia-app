@@ -3,8 +3,13 @@ import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'rea
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
+import { StackNavigationProp } from '@react-navigation/stack';
 
-export default function RecommendationsIA({ navigation }) {
+type Props = {
+  navigation: StackNavigationProp<any>;
+};
+
+export default function RecommendationsIA({ navigation }: Props) {
   const { colors } = useTheme();
   const [loading, setLoading] = useState(true);
   const [preview, setPreview] = useState("Analyse tes résultats avec l'IA");

@@ -14,6 +14,9 @@ export interface PendingQuestion {
   reponsesPrecedentes: string[];
   dateCreation: string;
   dateDerniereTentative: string;
+  contenuCours?: string;
+  reponseAttendue?: string;
+  criteresCorrection?: string;
 }
 
 async function getPendingQuestions(): Promise<PendingQuestion[]> {
@@ -44,7 +47,10 @@ export async function ajouterQuestionEnAttente(
   type: 'revision' | 'devoir',
   sessionId: string,
   reponseIncorrecte?: string,
-  feedback?: string
+  feedback?: string,
+  contenuCours?: string,
+  reponseAttendue?: string,
+  criteresCorrection?: string
 ): Promise<void> {
   const pending = await getPendingQuestions();
   

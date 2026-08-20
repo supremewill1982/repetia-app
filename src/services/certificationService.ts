@@ -3,36 +3,25 @@ import {
   collection, addDoc, serverTimestamp, query, where, getDocs,
   doc, getDoc, updateDoc, deleteDoc
 } from 'firebase/firestore';
-import { genererTestCertification, utiliserAgent } from './agents/agentManager';
-import { COUT_TEST_CERTIFICATION, DEL_AI_RECLAMATION, NIVEAUX_CERTIFICATION, PRIX_TEST_PAR_NIVEAU } from '../config/commissionRates';
+import { utiliserAgent, genererTestCertification } from './agents/agentManager';
+import { COUT_TEST_CERTIFICATION, DELAI_RECLAMATION, NIVEAUX_CERTIFICATION, PRIX_TEST_PAR_NIVEAU } from '../config/commissionRates';
 import { CertificationNiveau, Reclamation, TestCertification } from '../types/certificationTypes';
 
-// 🎯 Payer et générer un nouveau test de certification
+// 🎯 Générer gratuitement un nouveau test de certification
 export async function payerTestCertification(
   userId: string,
   matiere: string,
   niveau: string
 ): Promise<{ testId: string }> {
   try {
-    // 1. Vérifier que l'utilisateur a assez de solde
-    const userRef = doc(db, 'users', userId);
-    const userDoc = await getDoc(userRef);
+    // La certification est gratuite.
+    // Le solde du répétiteur représente uniquement ses gains.
+    const { testId, questions } = await genererTestCertification(
+      matiere,
+      niveau,
+      `${matiere} - ${niveau}`
+    );
 
-    if (!userDoc.exists()) {
-      throw new Error('Utilisateur non trouvé');
-    }
-
-    const userData = userDoc.data();
-    const coutTest = PRIX_TEST_PAR_NIVEAU[niveau as keyof typeof PRIX_TEST_PAR_NIVEAU] || COUT_TEST_CERTIFICATION;
-
-    if ((userData.solde || 0) < coutTest) {
-      throw new Error(`Solde insuffisant. Il vous faut au moins ${coutTest} FCFA.`);
-    }
-
-    // 2. Générer le test
-    const { testId, questions } = await genererTestCertification(matiere, niveau, `${matiere} - ${niveau}`);
-
-    // 3. Créer le document de test dans Firestore
     await addDoc(collection(db, 'tests_certification'), {
       id: testId,
       matiere,
@@ -44,18 +33,13 @@ export async function payerTestCertification(
       date_expiration_reclamation: null,
       score: 0,
       feedback: '',
-      duree: 60, // 60 minutes
+      duree: 60,
       note_passage: 70,
-    });
-
-    // 4. Déduire le coût du solde
-    await updateDoc(userRef, {
-      solde: (userData.solde || 0) - coutTest,
     });
 
     return { testId };
   } catch (error) {
-    console.error('❌ Erreur paiement test:', error);
+    console.error('❌ Erreur génération test certification:', error);
     throw error;
   }
 }
@@ -80,14 +64,29 @@ export async function soumettreTest(
     let score = 0;
     let totalPoints = 0;
 
+    const normaliserReponse = (value: string) =>
+      String(value || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\\u0300-\\u036f]/g, '')
+        .replace(/[.,!?;:]/g, '')
+        .replace(/\\s+/g, ' ')
+        .trim();
+
     questions.forEach((q: any) => {
-      totalPoints += q.points;
-      if (reponses[q.id] === q.reponse_correcte) {
-        score += q.points;
+      totalPoints += q.points || 0;
+
+      const reponseUtilisateur = normaliserReponse(reponses[q.id]);
+      const reponseCorrecte = normaliserReponse(q.reponse_correcte);
+
+      if (reponseUtilisateur === reponseCorrecte) {
+        score += q.points || 0;
       }
     });
 
-    const pourcentage = Math.round((score / totalPoints) * 100);
+    const pourcentage = totalPoints > 0
+      ? Math.round((score / totalPoints) * 100)
+      : 0;
 
     // 📌 Déterminer le niveau de certification
     let niveauCertif: CertificationNiveau = 'bronze';
@@ -111,7 +110,7 @@ export async function soumettreTest(
 
     // 📌 Mettre à jour le test
     const dateExpiration = new Date();
-    dateExpiration.setDate(dateExpiration.getDate() + DEL_AI_RECLAMATION);
+    dateExpiration.setDate(dateExpiration.getDate() + DELAI_RECLAMATION);
 
     await updateDoc(testRef, {
       statut: 'terminé',
@@ -120,6 +119,23 @@ export async function soumettreTest(
       date_passage: serverTimestamp(),
       date_expiration_reclamation: dateExpiration,
     });
+
+    // Fermer le suivi du test en cours
+    const enCoursQuery = query(
+      collection(db, 'tests_certification_en_cours'),
+      where('test_id', '==', testId),
+      where('repetiteur_id', '==', testData.repetiteur_id)
+    );
+
+    const enCoursSnapshot = await getDocs(enCoursQuery);
+
+    for (const docSnap of enCoursSnapshot.docs) {
+      await updateDoc(doc(db, 'tests_certification_en_cours', docSnap.id), {
+        statut: 'terminé',
+        date_fin: serverTimestamp(),
+        score: pourcentage,
+      });
+    }
 
     // 📌 Mettre à jour la certification de l'utilisateur
     const userRef = doc(db, 'users', testData.repetiteur_id);
@@ -183,7 +199,7 @@ export async function faireReclamation(
     const dateExpiration = testData.date_expiration_reclamation?.toDate();
 
     if (dateExpiration && new Date() > dateExpiration) {
-      throw new Error(`Délai de réclamation expiré (${DEL_AI_RECLAMATION} jours après le test)`);
+      throw new Error(`Délai de réclamation expiré (${DELAI_RECLAMATION} jours après le test)`);
     }
 
     // Créer la réclamation

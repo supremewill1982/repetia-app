@@ -1,0 +1,140 @@
+import { initializeApp } from 'firebase/app';
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  serverTimestamp,
+  query,
+  where,
+  getDocs,
+  doc,
+  getDoc,
+  updateDoc,
+  deleteDoc,
+  onSnapshot,
+  writeBatch,
+  orderBy,
+  limit,
+  startAfter,
+  arrayUnion,
+  arrayRemove,
+  increment
+} from 'firebase/firestore';
+
+import {
+  getStorage,
+  ref,
+  uploadBytes,
+  getDownloadURL,
+  deleteObject,
+  listAll
+} from 'firebase/storage';
+
+import {
+  getAuth,
+
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword,
+    signOut,
+    onAuthStateChanged,
+    User,
+    sendPasswordResetEmail,
+    updatePassword,
+    updateEmail,
+    reauthenticateWithCredential,
+    EmailAuthProvider
+  } from "firebase/auth";
+import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
+// =============================================
+// ✅ CONFIGURATION FIREBASE À MODIFIER
+// =============================================
+// Remplacez ces valeurs par celles de votre projet Firebase
+// (Trouvez-les dans: Console Firebase > Paramètres du projet > Vos applications > Config)
+const firebaseConfig = {
+  apiKey: "AIzaSyBGfXTxNzr68pksZeEoM9IGb0Tz9XDc1iI",               // ⬅️ Remplacez par votre API Key
+  authDomain: "monappedu-f6048.firebaseapp.com",     // ⬅️ Remplacez par votre Auth Domain
+  projectId: "monappedu-f6048",                   // ⬅️ Remplacez par votre Project ID
+  storageBucket: "monappedu-f6048.firebasestorage.app",     // ⬅️ Remplacez par votre Storage Bucket
+  messagingSenderId: "91467362855",                // ⬅️ Remplacez par votre Messaging Sender ID
+  appId: "1:91467362855:web:aab443bf9135e4049f1402",         // ⬅️ Remplacez par votre App ID
+  measurementId: "G-ABCDEF1234"                  // ⬅️ Optionnel (Google Analytics)
+};
+
+// =============================================
+// 🚀 INITIALISATION DE FIREBASE
+// =============================================
+const app = initializeApp(firebaseConfig);
+
+// =============================================
+// 📦 INITIALISATION DES SERVICES
+// =============================================
+const db = getFirestore(app);
+const storage = getStorage(app);
+const auth = getAuth(app);
+
+// =============================================
+// 🔥 EXPORT DE TOUT CE DONT ON A BESOIN
+// =============================================
+export {
+  // Firebase App
+  app,
+
+  // Firestore
+  db,
+  collection,
+  addDoc,
+  serverTimestamp,
+  query,
+  where,
+  getDocs,
+  doc,
+  getDoc,
+  updateDoc,
+  deleteDoc,
+  onSnapshot,
+  writeBatch,
+  orderBy,
+  limit,
+  startAfter,
+  arrayUnion,
+  arrayRemove,
+  increment,
+
+  // Storage
+  storage,
+  ref,
+  uploadBytes,
+  getDownloadURL,
+  deleteObject,
+  listAll,
+
+  // Authentication
+  auth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  User,
+  sendPasswordResetEmail,
+  updatePassword,
+  updateEmail,
+  reauthenticateWithCredential,
+  EmailAuthProvider
+};
+
+// =============================================
+// 💡 EXEMPLE DE CONFIGURATION RÉELLE
+// =============================================
+/*
+Exemple avec de vraies valeurs (à ne pas utiliser, créez les vôtres) :
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDvotre_cle_api_reelle_1234567890abcdef",
+  authDomain: "repetia-1a2b3c.firebaseapp.com",
+  projectId: "repetia-1a2b3c",
+  storageBucket: "repetia-1a2b3c.appspot.com",
+  messagingSenderId: "123456789012",
+  appId: "1:123456789012:web:abcdef1234567890",
+  measurementId: "G-ABCDEF1234"
+};
+*/

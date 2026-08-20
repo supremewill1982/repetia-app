@@ -1,12 +1,123 @@
 import axios from 'axios';
 import Constants from 'expo-constants';
 
-const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const GEMINI_MODELS = [
+  'gemini-3.5-flash',
+  'gemini-3.5-flash-lite',
+  'gemini-3.1-flash-lite',
+];
 
-// ✅ Clé lue depuis app.config.js → .env (plus exposée dans le code)
-const getApiKey = (): string => {
-  return Constants.expoConfig?.extra?.openRouterApiKey || '';
+const getGeminiApiKey = (): string => {
+  return Constants.expoConfig?.extra?.geminiApiKey || '';
 };
+
+async function appelerGemini(
+  prompt: string,
+  options?: {
+    systemInstruction?: string;
+    imageBase64?: string;
+    mimeType?: string;
+    maxOutputTokens?: number;
+    responseMimeType?: string;
+  }
+): Promise<string> {
+  const apiKey = getGeminiApiKey();
+
+  if (!apiKey) {
+    throw new Error('Clé Gemini absente');
+  }
+
+  const parts: any[] = [];
+
+  if (options?.imageBase64) {
+    parts.push({
+      inline_data: {
+        mime_type: options.mimeType || 'image/jpeg',
+        data: options.imageBase64,
+      },
+    });
+  }
+
+  parts.push({ text: prompt });
+
+  const body: any = {
+    contents: [
+      {
+        role: 'user',
+        parts,
+      },
+    ],
+    generationConfig: {
+      maxOutputTokens: options?.maxOutputTokens || 4000,
+      ...(options?.responseMimeType
+        ? { responseMimeType: options.responseMimeType }
+        : {}),
+    },
+  };
+
+  if (options?.systemInstruction) {
+    body.systemInstruction = {
+      parts: [{ text: options.systemInstruction }],
+    };
+  }
+
+  let dernierErreur: any = null;
+
+  for (const model of GEMINI_MODELS) {
+    const url =
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+
+    try {
+      console.log(`🤖 Gemini : tentative avec ${model}`);
+
+      const response = await axios.post(
+        url,
+        body,
+        {
+          headers: {
+            'x-goog-api-key': apiKey,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      const content = response.data?.candidates?.[0]?.content?.parts
+        ?.map((part: any) => part.text || '')
+        .join('')
+        .trim();
+
+      if (!content) {
+        throw new Error(`Réponse Gemini vide (${model})`);
+      }
+
+      console.log(`✅ Gemini ${model} a répondu`);
+      return content;
+
+    } catch (error: any) {
+      dernierErreur = error;
+
+      const status = error?.response?.status;
+
+      console.error(
+        `❌ Gemini ${model} erreur ${status || 'inconnue'}:`,
+        error?.response?.data || error?.message || error
+      );
+
+      // On passe au modèle suivant uniquement pour les erreurs
+      // temporaires de disponibilité ou de surcharge.
+      if (status === 503 || status === 429) {
+        console.log(`🔄 Fallback Gemini vers le modèle suivant...`);
+        continue;
+      }
+
+      // Les autres erreurs sont probablement des erreurs de clé,
+      // de requête ou de configuration : inutile de changer de modèle.
+      throw error;
+    }
+  }
+
+  throw dernierErreur || new Error('Tous les modèles Gemini sont indisponibles');
+}
 
 let niveauEleve = 'Terminale';
 let performanceEleve = 10;
@@ -199,232 +310,341 @@ export async function chatAvecAgent(
   try {
     const agent = getAgent(agentId);
     const niveau = niveauClasse || niveauEleve;
-    const systemPrompt = agent.systemPrompt(niveau);
 
-    const messages = [
-      { role: 'system', content: systemPrompt },
-      ...historique.slice(-10), // Garde les 10 derniers messages pour le contexte
-      {
-        role: 'user',
-        content: imageBase64
-          ? [
-              { type: 'text', text: message },
-              { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${imageBase64}` } },
-            ]
-          : message,
-      },
-    ];
+    const historiqueTexte = historique
+      .slice(-10)
+      .map(m => `${m.role === 'user' ? 'ÉLÈVE' : 'PROFESSEUR'}: ${m.content}`)
+      .join('\n');
 
-    const response = await axios.post(
-      API_URL,
-      {
-        model: 'google/gemini-flash-1.5',
-        messages,
-        max_tokens: 1000,
-        temperature: 0.7,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${getApiKey()}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    const prompt = `${historiqueTexte ? historiqueTexte + '\n\n' : ''}ÉLÈVE : ${message}`;
 
-    const content = response.data.choices[0]?.message?.content;
-    return { message: content || "Je n'ai pas bien compris. Peux-tu reformuler ?" };
+    const content = await appelerGemini(prompt, {
+      systemInstruction: agent.systemPrompt(niveau),
+      imageBase64,
+      mimeType: 'image/jpeg',
+      maxOutputTokens: 1000,
+    });
+
+    return {
+      message:
+        content ||
+        "Je n'ai pas bien compris. Peux-tu reformuler ?",
+    };
   } catch (error) {
     console.error('❌ Erreur chatAvecAgent:', error);
-    return { message: "Désolé, je rencontre une difficulté technique. Réessaie dans un instant." };
+
+    return {
+      message:
+        "Désolé, je rencontre une difficulté technique. Réessaie dans un instant.",
+    };
   }
 }
 
 // ══════════════════════════════════════════════════════
 // 📸 FONCTIONS EXISTANTES (inchangées, clé sécurisée)
 // ══════════════════════════════════════════════════════
-export async function extraireTexteCours(imageBase64: string, matiere: string): Promise<string> {
+export async function extraireTexteCours(
+  fichierBase64: string,
+  matiere: string,
+  mimeType: string = 'application/pdf'
+): Promise<string> {
   try {
-    const response = await axios.post(API_URL, {
-      model: 'google/gemini-flash-1.5',
-      messages: [
-        {
-          role: 'system',
-          content: `Tu es un professeur expert en ${matiere || 'pédagogie'}.
-Extrais le contenu pédagogique principal de cette image de cours.
-Structure ta réponse en: 1) Notions principales (3-5 points), 2) Exemples clés, 3) Définitions importantes.
-Réponds en français, de manière claire pour un élève de ${niveauEleve}.`,
-        },
-        {
-          role: 'user',
-          content: [
-            { type: 'text', text: `Analyse ce cours de ${matiere || 'général'} et extrait le contenu pédagogique essentiel.` },
-            { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${imageBase64}` } },
-          ],
-        },
-      ],
-      max_tokens: 1000,
-      temperature: 0.3,
-    }, {
-      headers: { Authorization: `Bearer ${getApiKey()}`, 'Content-Type': 'application/json' },
+    const typeFichier =
+      mimeType === 'application/pdf'
+        ? 'document PDF'
+        : 'photo du cours';
+
+    const prompt = `Tu es un professeur expert en ${matiere || 'pédagogie'}.
+
+Analyse attentivement le ${typeFichier} fourni.
+
+OBJECTIF :
+Extraire fidèlement le contenu pédagogique réellement présent dans le document afin qu'il puisse ensuite servir à générer des questions de révision et à corriger les réponses d'un élève.
+
+RÈGLES ABSOLUES :
+- Utilise uniquement les informations réellement présentes dans le document.
+- N'invente aucune notion, définition, formule, date, exemple ou information.
+- Conserve les informations importantes et précises.
+- Si une partie est illisible ou incertaine, indique-le au lieu de l'inventer.
+- Pour les mathématiques et sciences, conserve les formules, unités et relations importantes.
+- Pour l'histoire, la géographie et les matières littéraires, conserve les dates, noms, concepts et faits importants.
+- Le contenu doit être suffisamment détaillé pour permettre une correction précise des réponses.
+
+STRUCTURE :
+1. Titre ou thème du cours
+2. Notions principales
+3. Définitions importantes
+4. Formules, règles ou méthodes
+5. Dates, noms, faits ou données importantes
+6. Exemples et exercices présents
+7. Points essentiels à retenir
+
+Réponds en français et reste strictement fidèle au document.`;
+
+    const contenu = await appelerGemini(prompt, {
+      imageBase64: fichierBase64,
+      mimeType,
+      maxOutputTokens: 5000,
     });
-    return response.data.choices[0]?.message?.content || "Contenu du cours non détecté.";
-  } catch (error) {
-    console.error('❌ Erreur extraction cours:', error);
-    return "Le cours n'a pas pu être analysé. Réessaie avec une meilleure photo.";
+
+    console.log('✅ Extraction du cours réussie');
+    return contenu;
+  } catch (error: any) {
+    console.error(
+      '❌ Erreur extraction cours Gemini:',
+      error?.response?.data || error?.message || error
+    );
+    return '';
   }
 }
 
-export async function genererQuestionsCours(contenuCours: string, matiere: string): Promise<any[]> {
+export async function genererQuestionsCours(
+  contenuCours: string,
+  matiere: string
+): Promise<any[]> {
   try {
-    const safeContenu = contenuCours || "Contenu du cours non disponible";
-    const contenuLimit = safeContenu.length > 1500 ? safeContenu.substring(0, 1500) : safeContenu;
+    const safeContenu = contenuCours?.trim();
+
+    if (!safeContenu || safeContenu.length < 50) {
+      throw new Error('Contenu du cours insuffisant');
+    }
 
     const prompt = `Tu es un professeur expert en ${matiere || 'pédagogie'}.
-À partir du cours suivant, génère 8 questions de révision VARIÉES et SPÉCIFIQUES.
 
-CONTENU DU COURS:
-${contenuLimit}
+Tu dois créer une évaluation de révision UNIQUEMENT à partir du cours fourni.
 
-RÈGLES IMPORTANTES:
-1. Les questions doivent PORTER DIRECTEMENT sur le contenu fourni
-2. Varie les types: compréhension, application, mémorisation
-3. Adapte la difficulté au niveau ${niveauEleve}
-4. Ne pose PAS de questions génériques
+NIVEAU DE L'ÉLÈVE : ${niveauEleve}
 
-Réponds UNIQUEMENT en JSON:
+COURS :
+${safeContenu}
+
+CONSIGNES STRICTES :
+1. Génère exactement 8 questions si le contenu le permet.
+2. Chaque question doit être directement vérifiable à partir du cours.
+3. Ne pose aucune question dont la réponse ne se trouve pas dans le cours.
+4. Ne crée aucune information absente du cours.
+5. Varie les questions : compréhension, mémorisation et application.
+6. Évite les questions vagues.
+7. Pour chaque question, fournis une réponse attendue précise.
+8. Fournis les éléments indispensables permettant de distinguer une réponse correcte d'une réponse fausse.
+9. Pour une question d'application, indique clairement la méthode ou le résultat attendu.
+10. Chaque question vaut exactement 2 points.
+
+Réponds UNIQUEMENT avec un JSON valide sous cette forme :
+
 {
   "questions": [
     {
-      "texte": "Question spécifique sur le cours",
+      "texte": "Question précise",
+      "reponseAttendue": "Réponse correcte basée uniquement sur le cours",
+      "criteresCorrection": "Éléments indispensables à retrouver dans la réponse de l'élève",
       "difficulte": "facile|moyen|difficile",
       "type": "comprehension|application|memorisation",
       "points": 2,
       "issueDuCours": true
     }
   ]
-}`;
-
-    const response = await axios.post(API_URL, {
-      model: 'google/gemini-flash-1.5',
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: 1500,
-      temperature: 0.4,
-    }, {
-      headers: { Authorization: `Bearer ${getApiKey()}`, 'Content-Type': 'application/json' },
-    });
-
-    const contenu = response.data.choices[0]?.message?.content;
-    if (!contenu) throw new Error('Pas de réponse');
-
-    const cleaned = contenu.replace(/```json\s*|\s*```/g, '').trim();
-    const match = cleaned.match(/\{[\s\S]*\}/);
-    if (match) {
-      const parsed = JSON.parse(match[0]);
-      if (parsed.questions && Array.isArray(parsed.questions) && parsed.questions.length > 0) {
-        return parsed.questions;
-      }
-    }
-    throw new Error('Format invalide');
-  } catch (error) {
-    console.error('❌ Erreur génération questions:', error);
-    return genererQuestionsSecours(matiere, contenuCours);
-  }
 }
 
-function genererQuestionsSecours(matiere: string, contenu: string): any[] {
-  const safeContenu = contenu || "cours";
-  const motsCles = safeContenu.split(' ').slice(0, 20).join(' ');
-  const motsClesLimit = motsCles.length > 50 ? motsCles.substring(0, 50) : motsCles;
+IMPORTANT :
+- "reponseAttendue" doit être factuelle.
+- "criteresCorrection" doit contenir les éléments nécessaires pour obtenir 2/2.
+- Une réponse hors sujet doit obtenir 0/2.
+- Une réponse partiellement correcte doit obtenir 1/2.
+- Une réponse qui contredit le cours doit obtenir 0/2.`;
 
-  return [
-    { texte: `D'après le cours, quelle est l'idée principale de "${motsClesLimit}..." ?`, difficulte: 'facile', type: 'comprehension', points: 2 },
-    { texte: `Explique avec tes propres mots ce que tu as retenu de ce cours sur ${matiere || 'la matière'}.`, difficulte: 'moyen', type: 'application', points: 2 },
-    { texte: `Quel est le concept le plus important de ce cours ?`, difficulte: 'facile', type: 'memorisation', points: 2 },
-    { texte: `Comment appliquerais-tu cette notion dans un exercice pratique ?`, difficulte: 'difficile', type: 'application', points: 2 },
-    { texte: `Quels sont les 3 points clés à retenir de ce cours ?`, difficulte: 'moyen', type: 'comprehension', points: 2 },
-  ];
+    const contenu = await appelerGemini(prompt, {
+      maxOutputTokens: 4000,
+      responseMimeType: 'application/json',
+    });
+
+    console.log('🤖 RÉPONSE GEMINI QUESTIONS:', contenu);
+
+    const cleaned = contenu
+      .replace(/```json/gi, '')
+      .replace(/```/g, '')
+      .trim();
+
+    let parsed: any = null;
+
+    // 1. Réponse JSON directe
+    try {
+      parsed = JSON.parse(cleaned);
+    } catch {
+      // 2. Recherche d'un objet JSON dans la réponse
+      const start = cleaned.indexOf('{');
+      const end = cleaned.lastIndexOf('}');
+
+      if (start !== -1 && end > start) {
+        try {
+          parsed = JSON.parse(cleaned.slice(start, end + 1));
+        } catch {
+          parsed = null;
+        }
+      }
+    }
+
+    if (!parsed || !Array.isArray(parsed.questions)) {
+      console.error('❌ JSON QUESTIONS INVALIDE:', contenu);
+      throw new Error('JSON questions introuvable ou incomplet');
+    }
+
+    return parsed.questions;
+  } catch (error) {
+    console.error('❌ Erreur génération questions:', error);
+    throw error;
+  }
 }
 
 export async function evaluerReponseRevision(
   question: string,
   reponseEleve: string,
   essai: number = 1,
-  matiere?: string
+  matiere?: string,
+  contenuCours: string = '',
+  reponseAttendue: string = '',
+  criteresCorrection: string = ''
 ): Promise<{ note: number; feedback: string }> {
   try {
-    const safeQuestion = question || "Question non spécifiée";
-    const safeReponse = reponseEleve || "";
+    const safeQuestion = question?.trim() || 'Question non spécifiée';
+    const safeReponse = reponseEleve?.trim() || '';
+    const safeCours = contenuCours?.trim() || '';
+    const safeAttendue = reponseAttendue?.trim() || '';
+    const safeCriteres = criteresCorrection?.trim() || '';
 
-    const prompt = `Tu es un professeur bienveillant évaluant un élève de ${niveauEleve}.
-
-QUESTION POSÉE: ${safeQuestion}
-RÉPONSE DE L'ÉLÈVE (essai n°${essai}): ${safeReponse}
-
-RÈGLES D'ÉVALUATION:
-- Note 2: Réponse complète, précise, bonne compréhension
-- Note 1: Réponse partielle, idée principale présente
-- Note 0: Réponse incorrecte ou hors sujet
-
-RÉPONDS UNIQUEMENT EN JSON:
-{
-  "note": 0,
-  "feedback": "feedback constructif expliquant la note et comment s'améliorer"
-}`;
-
-    const response = await axios.post(API_URL, {
-      model: 'google/gemini-flash-1.5',
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: 300,
-      temperature: 0.2,
-    }, {
-      headers: { Authorization: `Bearer ${getApiKey()}`, 'Content-Type': 'application/json' },
-    });
-
-    const contenu = response.data.choices[0]?.message?.content;
-    if (!contenu) return evaluerReponseFallback(safeReponse, essai);
-
-    const cleaned = contenu.replace(/```json\s*|\s*```/g, '').trim();
-    const match = cleaned.match(/\{[\s\S]*\}/);
-    if (match) {
-      const parsed = JSON.parse(match[0]);
+    if (!safeReponse) {
       return {
-        note: Math.min(2, Math.max(0, parsed.note || 0)),
-        feedback: parsed.feedback || "Continue tes efforts !",
+        note: 0,
+        feedback: 'Aucune réponse fournie.',
       };
     }
-    return evaluerReponseFallback(safeReponse, essai);
+
+    const prompt = `Tu es un professeur strict mais pédagogique.
+
+MATIÈRE : ${matiere || 'Révision'}
+NIVEAU : ${niveauEleve}
+
+QUESTION :
+${safeQuestion}
+
+RÉPONSE ATTENDUE :
+${safeAttendue}
+
+CRITÈRES DE CORRECTION :
+${safeCriteres}
+
+CONTENU DU COURS :
+${safeCours}
+
+RÉPONSE DE L'ÉLÈVE (essai n°${essai}) :
+${safeReponse}
+
+ÉVALUE UNIQUEMENT LA JUSTESSE DE LA RÉPONSE.
+
+RÈGLES ABSOLUES :
+- Compare la réponse de l'élève avec le cours ET la réponse attendue.
+- La longueur de la réponse ne donne AUCUN point.
+- Une réponse longue mais fausse = 0.
+- Une réponse hors sujet = 0.
+- Une réponse qui contredit le cours = 0.
+- 2 points = réponse correcte et suffisamment complète.
+- 1 point = réponse partiellement correcte.
+- 0 point = réponse incorrecte, hors sujet, contradictoire ou trop vague.
+- N'invente aucun élément.
+- NE RÉVÈLE JAMAIS la réponse attendue à l'élève.
+- NE DONNE JAMAIS la solution complète dans le feedback.
+- Si la réponse est incorrecte, explique brièvement l'erreur ou donne un indice pédagogique, sans fournir directement la bonne réponse.
+- Le feedback doit être très court : maximum 15 mots.
+- Le feedback doit aider l'élève à réfléchir et progresser sans lui donner la solution.
+
+Retourne UNIQUEMENT un JSON valide :
+{
+  "note": 0,
+  "feedback": "Explication courte ou indice pédagogique sans révéler la réponse"
+}`;
+
+    const contenu = await appelerGemini(prompt, {
+      maxOutputTokens: 1000,
+      responseMimeType: 'application/json',
+    });
+
+    // Gemini peut parfois entourer le JSON de texte ou de balises Markdown.
+    // On extrait le premier objet JSON valide au lieu de dépendre
+    // d'un format de réponse strict.
+    console.log('🤖 RÉPONSE GEMINI CORRECTION:', contenu);
+
+    const cleaned = contenu
+      .replace(/```json/gi, '')
+      .replace(/```/g, '')
+      .trim();
+
+    let parsed: any = null;
+
+    try {
+      parsed = JSON.parse(cleaned);
+    } catch {
+      const start = cleaned.indexOf('{');
+      const end = cleaned.lastIndexOf('}');
+
+      if (start !== -1 && end > start) {
+        try {
+          parsed = JSON.parse(cleaned.slice(start, end + 1));
+        } catch {
+          parsed = null;
+        }
+      }
+    }
+
+    if (!parsed || typeof parsed !== 'object') {
+      console.error('❌ Réponse Gemini non JSON:', contenu);
+      throw new Error('JSON correction introuvable');
+    }
+
+    const note =
+      parsed.note === 2 || parsed.note === 1 || parsed.note === 0
+        ? parsed.note
+        : 0;
+
+    return {
+      note,
+      feedback:
+        typeof parsed.feedback === 'string' &&
+        parsed.feedback.trim()
+          ? parsed.feedback.trim()
+          : 'Réponse évaluée selon le contenu du cours.',
+    };
   } catch (error) {
     console.error('❌ Erreur évaluation:', error);
-    return evaluerReponseFallback(reponseEleve || "", essai);
+
+    return {
+      note: 0,
+      feedback:
+        'La correction automatique n’a pas pu être effectuée. Réessaie.',
+    };
   }
 }
 
-function evaluerReponseFallback(reponse: string, essai: number): { note: number; feedback: string } {
-  const longueur = (reponse || "").trim().length;
-  if (longueur > 100) return { note: 2, feedback: "Bravo ! Réponse détaillée et pertinente." };
-  if (longueur > 30) return { note: 1, feedback: "Bonne base ! Développe davantage ta réponse." };
-  if (essai >= 3) return { note: 0, feedback: "Prends le temps de mieux structurer ta réponse." };
-  return { note: 0, feedback: "Ta réponse est trop courte. Développe ta pensée avec des exemples." };
-}
-
-export async function analyserDevoir(imageBase64: string, matiere?: string): Promise<string> {
+export async function analyserDevoir(
+  imageBase64: string,
+  matiere?: string
+): Promise<string> {
   try {
-    const response = await axios.post(API_URL, {
-      model: 'google/gemini-flash-1.5',
-      messages: [
-        { role: 'system', content: `Tu es un professeur de ${matiere || 'mathématiques'}. Extrais UNIQUEMENT la ou les questions du devoir de manière précise.` },
-        { role: 'user', content: [
-          { type: 'text', text: 'Voici le devoir. Quelle est la question exacte ?' },
-          { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${imageBase64}` } }
-        ]}
-      ],
-      max_tokens: 500,
-      temperature: 0.2,
-    }, {
-      headers: { Authorization: `Bearer ${getApiKey()}`, 'Content-Type': 'application/json' },
+    const prompt = `Tu es un professeur de ${matiere || 'mathématiques'}.
+
+Extrais UNIQUEMENT la ou les questions du devoir de manière précise.
+
+Ne résous pas le devoir.
+Ne donne aucune réponse.
+Ne complète pas les informations illisibles par des suppositions.`;
+
+    return await appelerGemini(prompt, {
+      imageBase64,
+      mimeType: 'image/jpeg',
+      maxOutputTokens: 500,
     });
-    return response.data.choices[0]?.message?.content || "Peux-tu reformuler la question du devoir ?";
   } catch (error) {
+    console.error('❌ Erreur analyse devoir:', error);
+
     return "Décris-moi l'exercice avec tes mots, je t'aiderai à le résoudre.";
   }
 }

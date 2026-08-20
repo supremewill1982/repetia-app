@@ -98,7 +98,7 @@ export default function TuteurDashboardScreen({ navigation }: any) {
             <ActivityIndicator size="small" color="white" />
           ) : (
             <Switch
-              selectedValue={tuteur.disponible}
+              value={tuteur.disponible}
               onValueChange={handleToggleDispo}
               trackColor={{ false: '#607D8B', true: '#4CAF50' }}
               thumbColor="white"

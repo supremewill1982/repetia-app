@@ -22,20 +22,44 @@ import QuotaBanner from '../../components/QuotaBanner';
 
 const { width } = Dimensions.get('window');
 
+interface Score {
+  matiere: string;
+  score: number;
+  date: string;
+  icone: string;
+  couleur: string;
+  sessionId: string;
+}
+
+interface MatierePrioritaire {
+  nom: string;
+  note: number;
+  progression: number;
+  icone: string;
+  couleur: string;
+}
+
+interface StatsReelles {
+  totalSessions: number;
+  totalQuestions: number;
+  scoreMoyen: number;
+}
+
+
 const DONNEES_DEFAUT = {
   prenom: 'Élève',
   serie: 0,
-  revisionJour: { objectif: 3, fait: 0, matieres: [] },
+  revisionJour: { objectif: 3, fait: 0, matieres: [] as string[] },
   statsGlobales: { totalTravaux: 0, points: 0, badgesCount: 0 }
 };
 
-export default function AccueilEleve({ navigation }) {
+export default function AccueilEleve({ navigation }: { navigation: any }) {
   const { colors } = useTheme();
   const { userData } = useAuth();
   const [donnees, setDonnees]                   = useState(DONNEES_DEFAUT);
-  const [derniersScores, setDerniersScores]     = useState([]);
-  const [matieresPrioritaires, setMatieresPrioritaires] = useState([]);
-  const [statsReelles, setStatsReelles]         = useState(null);
+  const [derniersScores, setDerniersScores]     = useState<Score[]>([]);
+  const [matieresPrioritaires, setMatieresPrioritaires] = useState<MatierePrioritaire[]>([]);
+  const [statsReelles, setStatsReelles]         = useState<StatsReelles | null>(null);
   const [loading, setLoading]                   = useState(true);
   const [pendingCount, setPendingCount]         = useState(0);
   const [badgesCount, setBadgesCount]           = useState(0);
@@ -62,7 +86,7 @@ export default function AccueilEleve({ navigation }) {
       const sessions = await getSessionsEnfantFirebase();
 
       if (!sessions || sessions.length === 0) {
-        setDonnees(prev => ({ ...prev, prenom: userData?.prenom || 'Élève' }));
+        setDonnees(prev => ({ ...prev, prenom: String(userData?.prenom) || 'Élève' }));
         setStatsReelles({ totalSessions: 0, totalQuestions: 0, scoreMoyen: 0 });
         setLoading(false);
         return;
@@ -77,7 +101,7 @@ export default function AccueilEleve({ navigation }) {
       });
       const scoreMoyen = totalQuestions > 0 ? Math.round((totalPoints / (totalQuestions * 2)) * 100) : 0;
 
-      const statsParMatiere = {};
+        const statsParMatiere: Record<string, { questions: number; points: number }> = {};
       sessions.forEach(session => {
         const matiere = session.matiere || (session.type === 'devoir' ? 'Devoir' : 'Révision');
         if (!statsParMatiere[matiere]) statsParMatiere[matiere] = { questions: 0, points: 0 };
@@ -119,7 +143,7 @@ export default function AccueilEleve({ navigation }) {
       ))].sort();
       let serie = datesUniques.length > 0 ? 1 : 0;
       for (let i = 1; i < datesUniques.length; i++) {
-        const diff = (new Date(datesUniques[i]) - new Date(datesUniques[i-1])) / (1000*60*60*24);
+        const diff = (new Date(datesUniques[i]).getTime() - new Date(datesUniques[i-1]).getTime()) / (1000*60*60*24);
         if (diff <= 2) serie++; else serie = 1;
       }
 
@@ -133,7 +157,7 @@ export default function AccueilEleve({ navigation }) {
       )];
 
       setDonnees({
-        prenom: userData?.prenom || 'Élève',
+        prenom: String(userData?.prenom) || 'Élève',
         serie,
         revisionJour: { objectif: 3, fait: revisionsAujourdhui, matieres: matieresAujourdhui },
         statsGlobales: { totalTravaux: sessions.length, points: totalPoints, badgesCount },
@@ -146,14 +170,14 @@ export default function AccueilEleve({ navigation }) {
     }
   };
 
-  const CarteScore = ({ score }) => (
+  const CarteScore = ({ score }: { score: Score }) => (
     <TouchableOpacity
       style={[styles.scoreCard, { backgroundColor: colors.surface }]}
       onPress={() => { feedback('tap'); navigation.navigate('StatistiquesAvancees'); }}
       activeOpacity={0.7}
     >
       <View style={[styles.scoreIcone, { backgroundColor: score.couleur + '20' }]}>
-        <MaterialCommunityIcons name={score.icone} size={24} color={score.couleur} />
+        <MaterialCommunityIcons name={score.icone as any} size={24} color={score.couleur} />
       </View>
       <View style={styles.scoreInfo}>
         <Text style={[styles.scoreMatiere, { color: colors.text }]}>{score.matiere}</Text>
@@ -165,7 +189,7 @@ export default function AccueilEleve({ navigation }) {
     </TouchableOpacity>
   );
 
-  const CarteMatierePrioritaire = ({ matiere }) => (
+  const CarteMatierePrioritaire = ({ matiere }: { matiere: MatierePrioritaire }) => (
     <TouchableOpacity
       style={[styles.prioritaireCard, { backgroundColor: colors.surface }]}
       onPress={() => { feedback('tap'); navigation.navigate('PrisePhotoCours', { matiere: matiere.nom, type: 'revision' }); }}
@@ -173,7 +197,7 @@ export default function AccueilEleve({ navigation }) {
     >
       <View style={styles.prioritaireHeader}>
         <View style={[styles.prioritaireIcone, { backgroundColor: matiere.couleur + '20' }]}>
-          <MaterialCommunityIcons name={matiere.icone} size={30} color={matiere.couleur} />
+          <MaterialCommunityIcons name={matiere.icone as any} size={30} color={matiere.couleur} />
         </View>
         <View style={styles.prioritaireInfo}>
           <Text style={[styles.prioritaireNom, { color: colors.text }]}>{matiere.nom}</Text>
@@ -283,6 +307,84 @@ export default function AccueilEleve({ navigation }) {
           </View>
         </AnimatedWrapper>
 
+        {/* ── Partage avec le parent ── */}
+        <AnimatedWrapper type="slide" delay={300}>
+          <TouchableOpacity
+            onPress={() => {
+              feedback('tap');
+              navigation.navigate('GenererCodeLiaison');
+            }}
+            activeOpacity={0.85}
+            style={{
+              marginHorizontal: 16,
+              marginTop: 16,
+              marginBottom: 8,
+              borderRadius: 18,
+              overflow: 'hidden',
+              elevation: 4,
+              shadowOpacity: 0.15,
+              shadowRadius: 8,
+              shadowOffset: { width: 0, height: 3 },
+            }}
+          >
+            <LinearGradient
+              colors={[colors.primary, colors.secondary]}
+              style={{
+                paddingVertical: 17,
+                paddingHorizontal: 18,
+                flexDirection: 'row',
+                alignItems: 'center',
+              }}
+            >
+              <View
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 24,
+                  backgroundColor: 'rgba(255,255,255,0.20)',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginRight: 14,
+                }}
+              >
+                <MaterialCommunityIcons
+                  name="account-heart"
+                  size={27}
+                  color="white"
+                />
+              </View>
+
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={{
+                    color: 'white',
+                    fontSize: 17,
+                    fontWeight: '800',
+                    marginBottom: 3,
+                  }}
+                >
+                  Partager avec mon parent
+                </Text>
+                <Text
+                  style={{
+                    color: 'rgba(255,255,255,0.90)',
+                    fontSize: 13,
+                    lineHeight: 18,
+                  }}
+                >
+                  Génère ton code de liaison en quelques secondes
+                </Text>
+              </View>
+
+              <MaterialCommunityIcons
+                name="chevron-right"
+                size={28}
+                color="white"
+              />
+            </LinearGradient>
+          </TouchableOpacity>
+        </AnimatedWrapper>
+
         {/* ── Quota Premium ── */}
         <QuotaBanner onPremiumPress={() => navigation.navigate('Abonnement')} />
 
@@ -339,7 +441,7 @@ export default function AccueilEleve({ navigation }) {
                 { icon: 'trophy',            val: badgesCount,                          label: 'Badges',  color: colors.success },
               ].map(({ icon, val, label, color }) => (
                 <View key={label} style={[styles.statBloc, { backgroundColor: colors.surface }]}>
-                  <MaterialCommunityIcons name={icon} size={22} color={color} />
+                  <MaterialCommunityIcons name={icon as any} size={22} color={color} />
                   <Text style={[styles.statValeur, { color: colors.text }]}>{val}</Text>
                   <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{label}</Text>
                 </View>

@@ -46,14 +46,16 @@ const RegisterScreen = ({ navigation }: any) => {
 
     setLoading(true);
     try {
-      await register({
-        nom: nom.trim(),
-        prenom: prenom.trim(),
-        email: email.trim(),
+      await register(
+        email.trim(),
         password,
-        role,
-        telephone: telephone.trim() || undefined,
-      });
+        role as 'eleve' | 'parent' | 'repetiteur' | 'etablissement',
+        {
+          nom: nom.trim(),
+          prenom: prenom.trim(),
+          telephone: telephone.trim(),
+        },
+      );
       Alert.alert('Succès', 'Votre compte a été créé avec succès !');
     } catch (error: any) {
       Alert.alert('Erreur', error.message || 'Impossible de créer votre compte');
@@ -87,7 +89,7 @@ const RegisterScreen = ({ navigation }: any) => {
                 style={[styles.input, { color: colors.text }]}
                 placeholder="Votre nom de famille"
                 placeholderTextColor={colors.textMuted}
-                selectedValue={nom}
+                value={nom}
                 onChangeText={setNom}
               />
             </View>
@@ -99,7 +101,7 @@ const RegisterScreen = ({ navigation }: any) => {
                 style={[styles.input, { color: colors.text }]}
                 placeholder="Votre prénom"
                 placeholderTextColor={colors.textMuted}
-                selectedValue={prenom}
+                value={prenom}
                 onChangeText={setPrenom}
               />
             </View>
@@ -111,7 +113,7 @@ const RegisterScreen = ({ navigation }: any) => {
                 style={[styles.input, { color: colors.text }]}
                 placeholder="votre@email.com"
                 placeholderTextColor={colors.textMuted}
-                selectedValue={email}
+                value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -125,7 +127,7 @@ const RegisterScreen = ({ navigation }: any) => {
                 style={[styles.input, { color: colors.text, flex: 1 }]}
                 placeholder="Votre mot de passe"
                 placeholderTextColor={colors.textMuted}
-                selectedValue={password}
+                value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
@@ -146,7 +148,7 @@ const RegisterScreen = ({ navigation }: any) => {
                 style={[styles.input, { color: colors.text }]}
                 placeholder="Confirmez votre mot de passe"
                 placeholderTextColor={colors.textMuted}
-                selectedValue={confirmPassword}
+                value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 secureTextEntry={true}
                 autoCapitalize="none"
@@ -160,7 +162,7 @@ const RegisterScreen = ({ navigation }: any) => {
                 style={[styles.input, { color: colors.text }]}
                 placeholder="+241 012345678"
                 placeholderTextColor={colors.textMuted}
-                selectedValue={telephone}
+                value={telephone}
                 onChangeText={setTelephone}
                 keyboardType="phone-pad"
               />
@@ -174,7 +176,7 @@ const RegisterScreen = ({ navigation }: any) => {
                 style={{ color: colors.text }}
               >
                 {ROLES.map((r) => (
-                  <Picker.Item key={r.value} label={r.label} selectedValue={r.value} />
+                  <Picker.Item key={r.value} label={r.label} value={r.value} />
                 ))}
               </Picker>
             </View>

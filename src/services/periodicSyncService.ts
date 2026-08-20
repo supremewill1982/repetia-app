@@ -3,7 +3,7 @@ import { getSessionsSecure, saveSessionSecure } from './secureStorageService';
 import { getSessionsEnfantFirebase, sauvegarderSessionFirebase } from './firebaseEnfantService';
 import { synchroniserBadgesUtilisateur } from './badgesService';
 
-let syncInterval = null;
+  let syncInterval: ReturnType<typeof setInterval> | null = null;
 
 export function startPeriodicSync(intervalMinutes = 5) {
   if (syncInterval) clearInterval(syncInterval);
@@ -14,7 +14,7 @@ export function startPeriodicSync(intervalMinutes = 5) {
     console.log('🔄 Synchronisation périodique...');
     
     // Synchroniser les sessions locales vers Firebase
-    const sessionsLocales = await getSessionsSecure();
+    const sessionsLocales: any[] = await getSessionsSecure();
     for (const session of sessionsLocales) {
       if (!session.syncedToFirebase) {
         await sauvegarderSessionFirebase(session);

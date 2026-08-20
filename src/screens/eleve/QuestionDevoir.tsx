@@ -6,10 +6,10 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
-import { startTimeTracking, stopTimeTracking } from '../../services/timeTrackingService';
+import { startTimeTracking, stopTimeTracking, stopAndRestartNavigation } from '../../services/timeTrackingService';
 import { feedback } from '../../services/feedbackService';
 
-export default function QuestionDevoir({ route, navigation }) {
+export default function QuestionDevoir({ route, navigation }: any) {
   const { colors } = useTheme();
   const { imageUri, matiere } = route.params || {};
 
@@ -87,7 +87,7 @@ export default function QuestionDevoir({ route, navigation }) {
       const apiResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'Authorization': 'Bearer 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',
+          'Authorization': 'Bearer ',
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -123,7 +123,7 @@ export default function QuestionDevoir({ route, navigation }) {
       
     } catch (error) {
       console.error('❌ Erreur:', error);
-      setErreur(error.message || "Impossible de lire le devoir. Vérifie ta connexion.");
+        setErreur(error instanceof Error ? error.message : "Impossible de lire le devoir. Vérifie ta connexion.");
       // Question par défaut en mode dégradé
       setQuestion(`Peux-tu expliquer ce que tu as compris de cet exercice de ${matiere || 'mathématiques'} ?`);
     } finally {
@@ -142,7 +142,7 @@ export default function QuestionDevoir({ route, navigation }) {
       const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'Authorization': 'Bearer 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',
+          'Authorization': 'Bearer ',
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -221,8 +221,8 @@ Réponse: ${reponse}`
     ]);
   };
 
-  const handleRetour = () => {
-    stopTimeTracking();
+  const handleRetour = async () => {
+    await stopAndRestartNavigation();
     navigation.goBack();
   };
 
@@ -257,7 +257,7 @@ Réponse: ${reponse}`
                   style={[styles.textInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                   placeholder="Écris ta réponse..."
                   placeholderTextColor={colors.textMuted}
-                  selectedValue={reponse}
+                 
                   onChangeText={setReponse}
                   multiline
                   numberOfLines={4}

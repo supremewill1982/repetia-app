@@ -23,6 +23,7 @@ export interface Contribution {
   niveau: string;
   serie?: string;
   description?: string;
+  contenuTexte?: string;
   tags: string[];
   prix: number; // en FCFA
   statut: ContributionStatut;
@@ -49,4 +50,5 @@ export interface NouvelleContribution {
   serie?: string;
   prix: number;
   description?: string;
+  contenuTexte?: string;
 }

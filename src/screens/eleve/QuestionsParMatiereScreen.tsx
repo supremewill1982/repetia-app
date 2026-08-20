@@ -17,12 +17,31 @@ import { feedback } from '../../services/feedbackService';
 import AnimatedWrapper from '../../components/AnimatedWrapper';
 import AnimatedCard from '../../components/AnimatedCard';
 import ModernLoader from '../../components/ModernLoader';
+interface Question {
+  id: string;
+  question: string;
+  reponse: string;
+  note: number;
+  feedback: string;
+  date: string;
+  score?: number;
+  scoreMax?: number;
+  sessionId: string;
+}
+interface FirebaseQuestion {
+  question?: string;
+  reponse?: string;
+  note?: number;
+  feedback?: string;
+}
 
-export default function QuestionsParMatiereScreen({ route, navigation }) {
+
+
+export default function QuestionsParMatiereScreen({ route, navigation }: any) {
   const { colors } = useTheme();
   const { matiere, matiereIcone, matiereCouleur } = route.params;
-  const [questions, setQuestions] = useState([]);
-  const [filteredQuestions, setFilteredQuestions] = useState([]);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [filteredQuestions, setFilteredQuestions] = useState<Question[]>([]);
   const [searchText, setSearchText] = useState('');
   const [filter, setFilter] = useState('all'); // all, rate0, rate1
   const [loading, setLoading] = useState(true);
@@ -42,23 +61,23 @@ export default function QuestionsParMatiereScreen({ route, navigation }) {
     try {
       setLoading(true);
       const sessions = await getSessionsEnfantFirebase();
-      const questionsListe = [];
+      const questionsListe: Question[] = [];
 
       sessions.forEach(session => {
         if (session.matiere === matiere || (session.type === 'devoir' && matiere === 'Devoir') || (session.type === 'revision' && matiere === 'Révision')) {
           if (session.questions && Array.isArray(session.questions)) {
-            session.questions.forEach((q, idx) => {
-              if (q.note < 2) {
+            session.questions.forEach((q: FirebaseQuestion, idx) => {
+              if ((q.note ?? 0) < 2) {
                 questionsListe.push({
                   id: `${session.id}_${idx}`,
-                  question: q.question,
-                  reponse: q.reponse,
-                  note: q.note,
-                  feedback: q.feedback,
-                  date: session.date,
+                  question: q.question ?? "",
+                  reponse: q.reponse ?? "",
+                  note: q.note ?? 0,
+                  feedback: q.feedback ?? "",
+                  date: String(session.date),
                   score: session.scoreTotal,
                   scoreMax: session.scoreMax,
-                  sessionId: session.id,
+                  sessionId: String(session.id ?? ""),
                 });
               }
             });
@@ -67,7 +86,7 @@ export default function QuestionsParMatiereScreen({ route, navigation }) {
       });
 
       // Trier par date décroissante
-      questionsListe.sort((a, b) => new Date(b.date) - new Date(a.date));
+      questionsListe.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       setQuestions(questionsListe);
       
       // Calculer des stats
@@ -95,13 +114,13 @@ export default function QuestionsParMatiereScreen({ route, navigation }) {
     setFilteredQuestions(filtered);
   };
 
-  const getNoteColor = (note) => {
+  const getNoteColor = (note: number) => {
     if (note === 0) return colors.error;
     if (note === 1) return colors.warning;
     return colors.success;
   };
 
-  const handleQuestionPress = (q) => {
+  const handleQuestionPress = (q: Question) => {
     feedback('tap');
     navigation.navigate('QuestionDetail', {
       question: q.question,
@@ -124,7 +143,7 @@ export default function QuestionsParMatiereScreen({ route, navigation }) {
         </TouchableOpacity>
         <View style={styles.headerContent}>
           <View style={[styles.matiereBadge, { backgroundColor: matiereInfo.couleur + '40' }]}>
-            <MaterialCommunityIcons name={matiereInfo.icone} size={20} color="white" />
+            <MaterialCommunityIcons name={matiereInfo.icone as any} size={20} color="white" />
             <Text style={styles.matiereTitle}>{matiere}</Text>
           </View>
           <Text style={styles.statsText}>
@@ -141,7 +160,7 @@ export default function QuestionsParMatiereScreen({ route, navigation }) {
             style={[styles.searchInput, { color: colors.text }]}
             placeholder="Rechercher une question..."
             placeholderTextColor={colors.textMuted}
-            selectedValue={searchText}
+           
             onChangeText={setSearchText}
           />
           {searchText !== '' && (

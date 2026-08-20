@@ -1,6 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 import { auth } from './firebaseConfig';
-import { addTimeToMatiere, saveTimeStatsToFirebase, getTimeStatsFromFirebase } from './timeTrackingFirebaseService';
+import { saveTimeStatsToFirebase, getTimeStatsFromFirebase } from './timeTrackingFirebaseService';
 
 export function formatTime(minutes: number): string {
   if (!minutes || minutes < 0) return '0min';
@@ -33,6 +33,8 @@ let stats: TimeStats = {
   parMatiere: {},
 };
 let loaded = false;
+let loadedUserId: string | null = null;
+let saveInProgress: Promise<void> | null = null;
 
 async function key(): Promise<string> {
   const uid = auth.currentUser?.uid || 'anon';
@@ -42,12 +44,38 @@ async function key(): Promise<string> {
 async function load() {
   try {
     const uid = auth.currentUser?.uid;
+
+    // Aucun utilisateur Firebase : état neutre et non verrouillé.
     if (!uid) {
-      stats = { navigation: 0, devoirs: 0, revisions: 0, global: 0,
-        currentSession: { startTime: null, type: null, matiere: null }, parMatiere: {} };
-      loaded = true;
+      loaded = false;
+      loadedUserId = null;
+      stats = {
+        navigation: 0,
+        devoirs: 0,
+        revisions: 0,
+        global: 0,
+        currentSession: {
+          startTime: null,
+          type: null,
+          matiere: null,
+        },
+        parMatiere: {},
+      };
       return;
     }
+
+    // 🔐 Si l'utilisateur change, ne jamais conserver
+    // la session active du compte précédent.
+    const userChanged = loadedUserId !== null && loadedUserId !== uid;
+
+    if (userChanged) {
+      stats.currentSession = {
+        startTime: null,
+        type: null,
+        matiere: null,
+      };
+    }
+
     const k = await key();
     const local = await SecureStore.getItemAsync(k);
     let loc = local ? JSON.parse(local) : null;
@@ -58,9 +86,33 @@ async function load() {
 
     if (loc && cloud) {
       nav = Math.max(loc.navigation || 0, cloud.navigation || 0);
-      dev = Math.max(loc.devoirs    || 0, cloud.totalDevoirs   || 0);
-      rev = Math.max(loc.revisions  || 0, cloud.totalRevisions || 0);
-      parMatiere = { ...(cloud.parMatiere || {}), ...(loc.parMatiere || {}) };
+      dev = Math.max(loc.devoirs    || 0, cloud.devoirs   || 0);
+      rev = Math.max(loc.revisions  || 0, cloud.revisions || 0);
+      // Fusion matière par matière pour ne perdre aucun temps
+      // présent uniquement dans Firebase ou uniquement en local.
+      const cloudMatieres = cloud.parMatiere || {};
+      const localMatieres = loc.parMatiere || {};
+      const matieres = new Set([
+        ...Object.keys(cloudMatieres),
+        ...Object.keys(localMatieres),
+      ]);
+
+      parMatiere = {};
+      for (const matiere of matieres) {
+        const cloudM = cloudMatieres[matiere] || {};
+        const localM = localMatieres[matiere] || {};
+
+        const revision = Math.max(cloudM.revision || 0, localM.revision || 0);
+        const devoir = Math.max(cloudM.devoir || 0, localM.devoir || 0);
+        const navigation = Math.max(cloudM.navigation || 0, localM.navigation || 0);
+
+        parMatiere[matiere] = {
+          revision,
+          devoir,
+          navigation,
+          total: revision + devoir + navigation,
+        };
+      }
     } else if (loc) {
       nav = loc.navigation || 0;
       dev = loc.devoirs    || 0;
@@ -68,8 +120,8 @@ async function load() {
       parMatiere = loc.parMatiere || {};
     } else if (cloud) {
       nav = cloud.navigation     || 0;
-      dev = cloud.totalDevoirs   || 0;
-      rev = cloud.totalRevisions || 0;
+      dev = cloud.devoirs   || 0;
+      rev = cloud.revisions || 0;
       parMatiere = cloud.parMatiere || {};
     }
 
@@ -78,8 +130,9 @@ async function load() {
     stats.revisions  = rev;
     stats.global     = nav + dev + rev;
     stats.parMatiere = parMatiere;
-    stats.currentSession = { startTime: null, type: null, matiere: null };
+    // Préserver la session active lors d'un simple rechargement des statistiques.
     await save();
+    loadedUserId = uid;
     loaded = true;
   } catch (e) {
     console.error('Erreur load time:', e);
@@ -88,30 +141,54 @@ async function load() {
 }
 
 async function save() {
+  if (saveInProgress) {
+    await saveInProgress;
+  }
+
+  const operation = (async () => {
+    try {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const uid = user.uid;
+      const k = `${TIME_KEY}_${uid}`;
+
+      const data = {
+        navigation: stats.navigation,
+        devoirs: stats.devoirs,
+        revisions: stats.revisions,
+        global: stats.global,
+        parMatiere: stats.parMatiere,
+      };
+
+      await SecureStore.setItemAsync(k, JSON.stringify(data));
+
+      // Ne jamais envoyer les données d'un autre compte Firebase.
+      if (auth.currentUser?.uid !== uid) return;
+
+      await saveTimeStatsToFirebase({
+        totalApp: data.global,
+        totalRevisions: data.revisions,
+        totalDevoirs: data.devoirs,
+        navigation: data.navigation,
+        parMatiere: data.parMatiere,
+      });
+    } catch (e) {
+      console.error('Erreur save time:', e);
+    }
+  })();
+
+  saveInProgress = operation;
+
   try {
-    if (!auth.currentUser) return;
-    const k = await key();
-    const data = {
-      navigation: stats.navigation,
-      devoirs:    stats.devoirs,
-      revisions:  stats.revisions,
-      global:     stats.global,
-      parMatiere: stats.parMatiere,
-    };
-    await SecureStore.setItemAsync(k, JSON.stringify(data));
-    await saveTimeStatsToFirebase({
-      totalApp:       data.global,
-      totalRevisions: data.revisions,
-      totalDevoirs:   data.devoirs,
-      navigation:     data.navigation,
-      parMatiere:     data.parMatiere,
-    });
-  } catch (e) {
-    console.error('Erreur save time:', e);
+    await operation;
+  } finally {
+    if (saveInProgress === operation) {
+      saveInProgress = null;
+    }
   }
 }
 
-load();
 
 export async function startTimeTracking(
   type: 'revision' | 'devoir' | 'navigation',
@@ -153,7 +230,6 @@ async function _flush() {
       }
       stats.parMatiere[matiere][type as 'revision' | 'devoir'] += duration;
       stats.parMatiere[matiere].total += duration;
-      await addTimeToMatiere(matiere, type as 'revision' | 'devoir', duration);
     }
     await save();
   }

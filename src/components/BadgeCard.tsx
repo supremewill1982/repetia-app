@@ -39,7 +39,7 @@ export default function BadgeCard({ badge, onPress }: BadgeCardProps) {
         style={styles.gradient}
       >
         <View style={[styles.iconContainer, { backgroundColor: badge.couleur + '30' }]}>
-          <MaterialCommunityIcons name={badge.icone} size={40} color={badge.couleur} />
+          <MaterialCommunityIcons name={badge.icone as any} size={40} color={badge.couleur} />
         </View>
         
         <View style={styles.infoContainer}>

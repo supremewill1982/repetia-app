@@ -38,3 +38,7 @@ export const PRIX_TEST_PAR_NIVEAU = {
   '1ère': 4500,
   'Terminale': 5000,
 };
+
+// Paramètres des tests de certification
+export const COUT_TEST_CERTIFICATION = 5000; // 5000 FCFA
+export const DELAI_RECLAMATION = 7; // 7 jours pour faire une réclamation

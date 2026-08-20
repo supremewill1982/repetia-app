@@ -46,7 +46,7 @@ export async function soumettreContribution(
       fichier: {
         url: fileUrl,
         nom: nouvelleContribution.fichierUri.split('/').pop() || 'fichier',
-        taille: Math.round(fileInfo.size / 1024), // en Ko
+        taille: Math.round(fileInfo.exists ? fileInfo.size : 0 / 1024), // en Ko
         type: nouvelleContribution.fichierUri.split('.').pop()?.toLowerCase() || 'pdf',
       },
       date_soumission: serverTimestamp(),

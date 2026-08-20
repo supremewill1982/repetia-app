@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, Alert, ActivityIndicator
@@ -91,7 +91,7 @@ const ReclamationScreen = ({ navigation }: any) => {
           style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
           placeholder="Ex: test_abc123"
           placeholderTextColor={colors.textMuted}
-          selectedValue={testId}
+          value={testId}
           onChangeText={setTestId}
         />
 
@@ -100,7 +100,7 @@ const ReclamationScreen = ({ navigation }: any) => {
           style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
           placeholder="Ex: Mathématiques"
           placeholderTextColor={colors.textMuted}
-          selectedValue={matiere}
+          value={matiere}
           onChangeText={setMatiere}
         />
 
@@ -109,7 +109,7 @@ const ReclamationScreen = ({ navigation }: any) => {
           style={[styles.textArea, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
           placeholder="Expliquez pourquoi vous contestez ce résultat..."
           placeholderTextColor={colors.textMuted}
-          selectedValue={commentaire}
+          value={commentaire}
           onChangeText={setCommentaire}
           multiline
           numberOfLines={4}

@@ -11,7 +11,7 @@ import { enregistrerNouvelleTentative, supprimerQuestionEnAttente } from '../../
 import { feedback } from '../../services/feedbackService';
 import { getMatiereInfoWithFallback } from '../../services/matieresService';
 
-export default function RepriseQuestionScreen({ route, navigation }) {
+export default function RepriseQuestionScreen({ route, navigation }: any) {
   const { colors } = useTheme();
   const {
     questionId,
@@ -118,7 +118,7 @@ export default function RepriseQuestionScreen({ route, navigation }) {
             <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
           </TouchableOpacity>
           <View style={styles.headerBadge}>
-            <MaterialCommunityIcons name={matiereInfo.icone} size={20} color="white" />
+            <MaterialCommunityIcons name={matiereInfo.icone as any} size={20} color="white" />
             <Text style={styles.headerMatiere}>{matiere || 'Révision'}</Text>
           </View>
           <View style={[styles.tentativeHeader, { backgroundColor: colors.warning + '30' }]}>
@@ -139,7 +139,7 @@ export default function RepriseQuestionScreen({ route, navigation }) {
             <Text style={[styles.historiqueLabel, { color: colors.textSecondary }]}>
               📝 Historique de tes réponses
             </Text>
-            {safeReponsesPrecedentes.map((rep, idx) => {
+            {safeReponsesPrecedentes.map((rep: string, idx: number) => {
               // CORRECTION: Vérifier que rep existe avant substring
               const reponseText = rep || "Réponse non enregistrée";
               const reponseDisplay = reponseText.length > 80 ? reponseText.substring(0, 80) + "..." : reponseText;
@@ -158,7 +158,7 @@ export default function RepriseQuestionScreen({ route, navigation }) {
             style={[styles.textInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
             placeholder="Écris ta réponse ici..."
             placeholderTextColor={colors.textMuted}
-            selectedValue={reponse}
+           
             onChangeText={setReponse}
             multiline
             numberOfLines={6}

@@ -215,7 +215,7 @@ export default function ModernLoader({
               style={styles.iconGradient}
             >
               <MaterialCommunityIcons 
-                name={icons[type]} 
+                name={icons[type] as any} 
                 size={48} 
                 color="white" 
               />

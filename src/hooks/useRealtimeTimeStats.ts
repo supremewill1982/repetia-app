@@ -9,6 +9,14 @@ interface TimeStats {
   global: number;
 }
 
+interface TimePerSubject {
+  matiere: string;
+  revision: number;
+  devoir: number;
+  navigation: number;
+  total: number;
+}
+
 interface TimeSummary {
   global: string;
   revisions: string;
@@ -37,7 +45,7 @@ export function useRealtimeTimeStats(intervalSeconds: number = 30) {
     devoirsMinutes: 0,
     navigationMinutes: 0
   });
-  const [timePerSubject, setTimePerSubject] = useState([]);
+  const [timePerSubject, setTimePerSubject] = useState<TimePerSubject[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState(Date.now());
 

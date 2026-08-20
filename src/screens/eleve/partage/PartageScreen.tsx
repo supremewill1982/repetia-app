@@ -16,13 +16,13 @@ import { useAuth } from '../../../context/AuthContext';
 import { getCodeLiaison, genererCodeLiaison, getSessionsEnfantFirebase, getInfosEnfant } from '../../../services/firebaseEnfantService';
 import { useFocusEffect } from '@react-navigation/native';
 
-export default function PartageScreen({ navigation }) {
+export default function PartageScreen({ navigation }: any) {
   const { colors } = useTheme();
   const { userId } = useAuth();
   
   const [loading, setLoading] = useState(true);
   const [code, setCode] = useState('');
-  const [stats, setStats] = useState(null);
+  const [stats, setStats] = useState<any>(null);
   const [error, setError] = useState('');
 
   useFocusEffect(
@@ -68,7 +68,7 @@ export default function PartageScreen({ navigation }) {
       const dernieresSessions = sessions.slice(0, 3).map(s => ({
         date: new Date(s.date).toLocaleDateString('fr-FR'),
         matiere: s.matiere || 'Général',
-        score: s.scoreTotal ? Math.round((s.scoreTotal / s.scoreMax) * 100) : 0
+        score: s.scoreTotal ? Math.round((s.scoreTotal / (s.scoreMax || 1)) * 100) : 0
       }));
       
       setStats({ 
@@ -195,7 +195,7 @@ export default function PartageScreen({ navigation }) {
           {stats.dernieresSessions.length > 0 && (
             <View style={styles.lastSessions}>
               <Text style={[styles.lastSessionsTitle, { color: colors.textSecondary }]}>Derniers travaux :</Text>
-              {stats.dernieresSessions.map((s, i) => (
+              {stats.dernieresSessions.map((s: any, i: number) => (
                 <Text key={i} style={[styles.lastSessionItem, { color: colors.textMuted }]}>
                   • {s.date} - {s.matiere} : {s.score}%
                 </Text>

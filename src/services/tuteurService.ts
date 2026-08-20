@@ -1,6 +1,6 @@
 import {
   getFirestore, collection, doc, getDoc, getDocs, setDoc,
-  serverTimestamp, increment,
+  serverTimestamp, increment, updateDoc, query, where, limit, addDoc,
 } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
@@ -207,7 +207,7 @@ export async function getTuteursDisponibles(matiere?: string): Promise<Tuteur[]>
     );
 
     const snap  = await getDocs(q);
-    let tuteurs = snap.docs.map(d => ({ ...d.data(), uid: d.id }) as Tuteur);
+      let tuteurs = snap.docs.map(d => ({ ...(d.data() as Record<string, unknown>), uid: d.id }) as Tuteur);
 
     if (matiere) {
       tuteurs = tuteurs.filter(t => t.matieres.includes(matiere));
@@ -282,6 +282,7 @@ export async function terminerReservation(id: string, montant: number): Promise<
     nbSessions:  increment(1),
     revenuTotal: increment(gainTuteur),
     revenuMois:  increment(gainTuteur),
+    solde:       increment(gainTuteur),
   });
 }
 

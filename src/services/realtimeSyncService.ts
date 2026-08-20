@@ -1,69 +1,172 @@
-import { db } from './firebaseConfig';
-import { doc, onSnapshot, collection, query, where } from 'firebase/firestore';
-import { auth } from './firebaseConfig';
-import { getSessionsSecure, saveSessionSecure } from './secureStorageService';
-import { getBadgesDeBloques, sauvegarderBadges } from './badgesService';
+import { db, auth } from './firebaseConfig';
+import {
+  doc,
+  onSnapshot,
+  collection,
+  query,
+  where,
+  type Unsubscribe,
+} from 'firebase/firestore';
 
-let unsubscribeSessions = null;
-let unsubscribeBadges = null;
+import { saveSessionSecure } from './secureStorageService';
+import {
+  getBadgesDeBloques,
+    sauvegarderBadges,
+} from './badgesService';
 
-export function startRealtimeSync(onDataUpdate) {
+type RealtimeDataType = 'sessions' | 'badges';
+
+type RealtimeDataUpdate = (
+  type: RealtimeDataType,
+  data: any[]
+) => void;
+
+interface SessionData {
+  id: string;
+  [key: string]: any;
+}
+
+interface BadgeData {
+  id: string;
+  [key: string]: any;
+}
+
+let unsubscribeSessions: Unsubscribe | null = null;
+let unsubscribeBadges: Unsubscribe | null = null;
+
+export function startRealtimeSync(
+  onDataUpdate?: RealtimeDataUpdate
+): () => void {
   const user = auth.currentUser;
+
   if (!user) {
-    console.log('⚠️ startRealtimeSync: aucun utilisateur connecté');
+    console.log(
+      '⚠️ startRealtimeSync: aucun utilisateur connecté'
+    );
+
     return () => {};
   }
 
-  console.log(`📡 Démarrage synchronisation temps réel pour ${user.email}`);
+  console.log(
+    `📡 Démarrage synchronisation temps réel pour ${user.email}`
+  );
 
-  // Écouter les nouvelles sessions
+  // ============================================================
+  // ÉCOUTE DES SESSIONS
+  // ============================================================
+
   const sessionsRef = collection(db, 'sessions');
-  const q = query(sessionsRef, where('enfantId', '==', user.uid));
-  
-  unsubscribeSessions = onSnapshot(q, async (snapshot) => {
-    const nouvellesSessions = [];
-    snapshot.docChanges().forEach((change) => {
-      if (change.type === 'added') {
-        console.log(`📝 Nouvelle session ajoutée: ${change.doc.id}`);
-        nouvellesSessions.push({ id: change.doc.id, ...change.doc.data() });
-      }
-    });
-    if (nouvellesSessions.length > 0) {
-      for (const session of nouvellesSessions) {
-        await saveSessionSecure(session);
-      }
-      if (onDataUpdate) onDataUpdate('sessions', nouvellesSessions);
-    }
-  }, (error) => {
-    console.error('❌ Erreur écoute sessions:', error);
-  });
 
-  // Écouter les badges
-  const badgesRef = doc(db, 'badges', user.uid);
-  unsubscribeBadges = onSnapshot(badgesRef, async (docSnap) => {
-    if (docSnap.exists()) {
-      const badges = docSnap.data().badges || [];
-      const badgesLocaux = await getBadgesDeBloques();
-      
-      // Vérifier si de nouveaux badges sont arrivés
-      const nouveauxBadges = badges.filter(b => 
-        !badgesLocaux.some(lb => lb.id === b.id)
+  const q = query(
+    sessionsRef,
+    where('enfantId', '==', user.uid)
+  );
+
+  unsubscribeSessions = onSnapshot(
+    q,
+    async (snapshot) => {
+      const nouvellesSessions: SessionData[] = [];
+
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === 'added') {
+          console.log(
+            `📝 Nouvelle session ajoutée: ${change.doc.id}`
+          );
+
+          nouvellesSessions.push({
+            id: change.doc.id,
+            ...change.doc.data(),
+          });
+        }
+      });
+
+      if (nouvellesSessions.length > 0) {
+        for (const session of nouvellesSessions) {
+          await saveSessionSecure(session);
+        }
+
+        onDataUpdate?.(
+          'sessions',
+          nouvellesSessions
+        );
+      }
+    },
+    (error) => {
+      console.error(
+        '❌ Erreur écoute sessions:',
+        error
       );
-      
-      if (nouveauxBadges.length > 0) {
-        console.log(`🎖️ ${nouveauxBadges.length} nouveaux badges synchronisés`);
-        await sauvegarderBadges(badges);
-        if (onDataUpdate) onDataUpdate('badges', nouveauxBadges);
-      }
     }
-  }, (error) => {
-    console.error('❌ Erreur écoute badges:', error);
-  });
+  );
 
-  // Retourner une fonction pour arrêter l'écoute
+  // ============================================================
+  // ÉCOUTE DES BADGES
+  // ============================================================
+
+  const badgesRef = doc(
+    db,
+    'badges',
+    user.uid
+  );
+
+  unsubscribeBadges = onSnapshot(
+    badgesRef,
+    async (docSnap) => {
+      if (!docSnap.exists()) {
+        return;
+      }
+
+      const badges: BadgeData[] =
+        (docSnap.data().badges || []) as BadgeData[];
+
+      const badgesLocaux =
+        await getBadgesDeBloques();
+
+      const nouveauxBadges = badges.filter(
+        (b: BadgeData) =>
+          !badgesLocaux.some(
+            (lb: BadgeData) => lb.id === b.id
+          )
+      );
+
+      if (nouveauxBadges.length > 0) {
+        console.log(
+          `🎖️ ${nouveauxBadges.length} nouveaux badges synchronisés`
+        );
+
+        await sauvegarderBadges(badges);
+
+        onDataUpdate?.(
+          'badges',
+          nouveauxBadges
+        );
+      }
+    },
+    (error) => {
+      console.error(
+        '❌ Erreur écoute badges:',
+        error
+      );
+    }
+  );
+
+  // ============================================================
+  // ARRÊT DE LA SYNCHRONISATION
+  // ============================================================
+
   return () => {
-    console.log('🔴 Arrêt synchronisation temps réel');
-    if (unsubscribeSessions) unsubscribeSessions();
-    if (unsubscribeBadges) unsubscribeBadges();
+    console.log(
+      '🔴 Arrêt synchronisation temps réel'
+    );
+
+    if (unsubscribeSessions) {
+      unsubscribeSessions();
+      unsubscribeSessions = null;
+    }
+
+    if (unsubscribeBadges) {
+      unsubscribeBadges();
+      unsubscribeBadges = null;
+    }
   };
 }

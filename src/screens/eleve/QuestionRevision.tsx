@@ -20,9 +20,10 @@ import ModernLoader from '../../components/ModernLoader';
 
 export default function QuestionRevision({ route, navigation }: any) {
   const { colors } = useTheme();
-  const { imageBase64, matiere, imageUri } = route.params || {};
+  const { imageBase64, matiere, imageUri, isPDF } = route.params || {};
 
   const [questions, setQuestions]               = useState<any[]>([]);
+  const [contenuCours, setContenuCours]         = useState('');
   const [questionActuelle, setQuestionActuelle] = useState(0);
   const [reponse, setReponse]                   = useState('');
   const [reponses, setReponses]                 = useState<any[]>([]);
@@ -104,10 +105,15 @@ export default function QuestionRevision({ route, navigation }: any) {
           reader.readAsDataURL(blob);
         });
       }
-      const contenu = await extraireTexteCours(base64Data, matiere);
+      const mimeType = isPDF ? 'application/pdf' : 'image/jpeg';
+      const contenu = await extraireTexteCours(base64Data, matiere, mimeType);
       const qs      = await genererQuestionsCours(contenu, matiere);
       // Limiter à 8 questions maximum
       setQuestions(qs.slice(0, 8));
+
+      // ⏱️ Le temps de révision commence dès que les questions sont disponibles
+      // Lecture, réflexion, réponse ou question ignorée sont comptées
+      await demarrerTempsRevision();
     } catch (e) {
       console.error('Erreur génération questions:', e);
       Alert.alert('Erreur', "Impossible d'analyser l'image. Réessaie.");
@@ -140,8 +146,23 @@ export default function QuestionRevision({ route, navigation }: any) {
 
     try {
       const questionTexte = questions[questionActuelle]?.texte || questions[questionActuelle];
-      const resultat = await evaluerReponseRevision(questionTexte, reponse, essais + 1, matiere);
+      const questionData = questions[questionActuelle] || {};
+
+      const resultat = await evaluerReponseRevision(
+        questionTexte,
+        reponse,
+        essais + 1,
+        matiere,
+        contenuCours,
+        questionData.reponseAttendue || '',
+        questionData.criteresCorrection || ''
+      );
       const note = resultat.note;
+
+      // Toujours vider le champ après la correction.
+      // L'ancienne réponse ne doit jamais rester affichée
+      // lorsqu'une nouvelle tentative est possible.
+      setReponse('');
 
       setNoteActuelle(note);
       await feedback(note === 2 ? 'success' : note === 1 ? 'info' : 'error');
@@ -150,7 +171,6 @@ export default function QuestionRevision({ route, navigation }: any) {
       if (note < 1.5 && essais + 1 < 3) {
         setEssais(essais + 1);
         setFeedbackMsg(resultat.feedback);
-        setReponse('');
         setVerification(false);
         return; // Ne pas ajouter au score, ne pas avancer
       }
@@ -339,7 +359,7 @@ export default function QuestionRevision({ route, navigation }: any) {
               style={[styles.textInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
               placeholder="Écris ta réponse ici..."
               placeholderTextColor={colors.textMuted}
-              selectedValue={reponse}
+             
               onChangeText={setReponse}
               multiline
               numberOfLines={4}

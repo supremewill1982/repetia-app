@@ -44,7 +44,7 @@ export default function RepetiteursScreen({ navigation }: any) {
             style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
             placeholder="Ex: Mathématiques, Anglais..."
             placeholderTextColor={colors.textMuted}
-            selectedValue={matiereFiltre}
+           
             onChangeText={setMatiereFiltre}
           />
           <TouchableOpacity style={[styles.searchBtn, { backgroundColor: colors.primary }]} onPress={handleRechercher}>

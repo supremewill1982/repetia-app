@@ -14,9 +14,9 @@ import { getMatiereInfoWithFallback } from '../../services/matieresService';
 import ModernLoader from '../../components/ModernLoader';
 import { feedback } from '../../services/feedbackService';
 
-export default function ToutesMatieresScreen({ navigation }) {
+export default function ToutesMatieresScreen({ navigation }: any) {
   const { colors } = useTheme();
-  const [matieres, setMatieres] = useState([]);
+  const [matieres, setMatieres] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ total: 0, moyenne: 0 });
 
@@ -25,7 +25,7 @@ export default function ToutesMatieresScreen({ navigation }) {
   }, []);
 
   // Convertir une note sur 2 en note sur 20
-  const noteSur20 = (noteSur2) => {
+  const noteSur20 = (noteSur2: number) => {
     return Math.round(noteSur2 * 10);
   };
 
@@ -39,7 +39,7 @@ export default function ToutesMatieresScreen({ navigation }) {
         return;
       }
       
-      const statsParMatiere = {};
+      const statsParMatiere: Record<string, { totalPoints: number; totalQuestions: number; sessions: number }> = {};
       
       sessions.forEach(session => {
         const matiere = session.matiere || (session.type === 'devoir' ? 'Devoir' : 'Révision');
@@ -119,7 +119,7 @@ export default function ToutesMatieresScreen({ navigation }) {
     }
   };
 
-  const CarteMatiere = ({ matiere }) => (
+  const CarteMatiere = ({ matiere }: any) => (
     <TouchableOpacity
       style={[styles.matiereCard, { backgroundColor: colors.surface }]}
       onPress={() => {

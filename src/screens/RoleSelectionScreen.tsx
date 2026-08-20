@@ -40,7 +40,11 @@ const RoleSelectionScreen = ({ navigation }: any) => {
   const { colors } = useTheme();
 
   const handleSelectRole = (role: string) => {
-    navigation.navigate('Login', { selectedRole: role });
+    if (role === "eleve") {
+      navigation.navigate("ConnexionEnfant");
+      return;
+    }
+    navigation.navigate("Login", { selectedRole: role });
   };
 
   return (

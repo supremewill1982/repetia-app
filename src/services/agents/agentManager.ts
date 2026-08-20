@@ -1,9 +1,10 @@
+import { utiliserOpenRouter } from "./agentTypes";
 import { db } from '../firebaseConfig';
 import { collection, addDoc, serverTimestamp, getDocs, query, where } from 'firebase/firestore';
-import { utiliserOpenRouter } from './agentTypes';
 
 // Configuration des agents
 const AGENTS_CONFIG = {
+  tuteur: { name: 'Tuteur IA', description: 'Accompagne les élèves dans leur apprentissage', model: 'openai/gpt-4o-mini', temperature: 0.7, max_tokens: 2500, system_prompt: `Tu es un tuteur pédagogique expert. Aide l'élève à comprendre ses cours, raisonne étape par étape, donne des exemples simples et adapte tes explications à son niveau. Ne donne pas seulement la réponse : aide l'élève à comprendre. Réponds toujours en français.` }, 
   coach: {
     name: 'Coach IA',
     description: 'Aide les élèves avec des conseils personnalisés',
@@ -360,12 +361,48 @@ Sois précis, encourageant et donne des conseils concrets.`;
 };
 
 // Exporter tout
-export {
-  AGENTS_CONFIG,
-  BASE_CONNAISSANCES,
-  COACH_KNOWLEDGE,
-  utiliserAgent,
-  genererExercice,
-  corrigerReponse,
-  genererRapportProgression
-};
+
+
+export async function genererTestCertification(
+  matiere: string,
+  niveau: string,
+  contexte: string
+): Promise<{ testId: string; questions: unknown[] }> {
+  try {
+    const questions: any[] = [];
+
+    // Générer 10 questions variées
+    for (let i = 0; i < 10; i++) {
+      const type = i % 2 === 0 ? 'qcm' : 'ouvert';
+      const question = await genererExercice(matiere, niveau, type);
+
+      if (question && typeof question === 'object') {
+        questions.push({
+          id: `q_${Date.now()}_${i}`,
+          texte: question.texte || `Question ${i + 1}`,
+          type: question.type === 'qcm' ? 'qcm' : 'ouvert',
+          ...(Array.isArray(question.options)
+            ? { options: question.options }
+            : {}),
+          reponse_correcte: question.reponse_correcte || '',
+          points: typeof question.points === 'number' && question.points > 0
+            ? question.points
+            : 1,
+          difficulte:
+            question.difficulte === 'facile' ||
+            question.difficulte === 'difficile'
+              ? question.difficulte
+              : 'moyen',
+        });
+      }
+    }
+
+    return {
+      testId: `test_${Date.now()}`,
+      questions,
+    };
+  } catch (error) {
+    console.error('❌ Erreur génération test certification:', error);
+    throw new Error('Impossible de générer le test de certification');
+  }
+}

@@ -2,7 +2,7 @@ import axios from 'axios';
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import {
   getFirestore, collection, doc, setDoc,
   getDocs, deleteDoc, query, where, serverTimestamp, increment,
@@ -115,7 +115,7 @@ export async function exporterScriptTexte(podcast: PodcastEnregistre): Promise<v
   ].filter(Boolean).join('\n');
 
   const path = `${FileSystem.cacheDirectory}podcast_${podcast.id}.txt`;
-  await FileSystem.writeAsStringAsync(path, texte, { encoding: FileSystem.EncodingType.UTF8 });
+  await FileSystem.writeAsStringAsync(path, texte, { encoding: 'utf8' });
 
   if (await Sharing.isAvailableAsync()) {
     await Sharing.shareAsync(path, {

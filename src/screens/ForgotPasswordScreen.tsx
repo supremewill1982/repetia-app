@@ -43,7 +43,7 @@ const ForgotPasswordScreen = ({ navigation }: any) => {
             Vérifiez votre boîte mail pour réinitialiser votre mot de passe.
           </Text>
           <TouchableOpacity
-            style={[styles.backButton, { backgroundColor: colors.primary }]}
+            style={[styles.successBackButton, { backgroundColor: colors.primary }]}
             onPress={() => navigation.navigate('Login')}
           >
             <Text style={styles.backButtonText}>Retour à la connexion</Text>
@@ -85,7 +85,7 @@ const ForgotPasswordScreen = ({ navigation }: any) => {
               style={[styles.input, { color: colors.text }]}
               placeholder="votre@email.com"
               placeholderTextColor={colors.textMuted}
-              selectedValue={email}
+              value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     lineHeight: 20,
   },
-  backButton: {
+  successBackButton: {
     padding: 16,
     borderRadius: 8,
     marginTop: 24,

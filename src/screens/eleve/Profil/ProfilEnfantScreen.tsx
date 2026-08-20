@@ -155,12 +155,12 @@ export default function ProfilEnfantScreen({ navigation }: any) {
           <View style={styles.avatarContainer}>
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>
-                {userData?.prenom ? userData.prenom[0].toUpperCase() : '👤'}
+                  {typeof userData?.prenom === 'string' ? userData.prenom.charAt(0).toUpperCase() : '👤'}
               </Text>
             </View>
-            <Text style={styles.userName}>{userData?.prenom || 'Élève'}</Text>
-            <Text style={styles.userClass}>{userData?.classe || 'Classe non définie'}</Text>
-            <Text style={styles.userEmail}>{userData?.email || ''}</Text>
+            <Text style={styles.userName}>{typeof userData?.prenom === 'string' ? userData.prenom : 'Élève'}</Text>
+            <Text style={styles.userClass}>{typeof userData?.classe === 'string' ? userData.classe : 'Classe non définie'}</Text>
+            <Text style={styles.userEmail}>{typeof userData?.email === 'string' ? userData.email : ''}</Text>
           </View>
         </LinearGradient>
       </AnimatedWrapper>
@@ -217,7 +217,7 @@ export default function ProfilEnfantScreen({ navigation }: any) {
               </View>
               <Text style={[styles.menuLabel, { color: colors.text }]}>Mon prénom</Text>
             </View>
-            <Text style={[styles.menuValue, { color: colors.textSecondary }]}>{userData?.prenom || 'Non défini'}</Text>
+            <Text style={[styles.menuValue, { color: colors.textSecondary }]}>{typeof userData?.prenom === 'string' ? userData.prenom : 'Non défini'}</Text>
           </View>
           
           <View style={styles.menuItem}>
@@ -227,7 +227,7 @@ export default function ProfilEnfantScreen({ navigation }: any) {
               </View>
               <Text style={[styles.menuLabel, { color: colors.text }]}>Ma classe</Text>
             </View>
-            <Text style={[styles.menuValue, { color: colors.textSecondary }]}>{userData?.classe || 'Non définie'}</Text>
+            <Text style={[styles.menuValue, { color: colors.textSecondary }]}>{typeof userData?.classe === 'string' ? userData.classe : 'Non définie'}</Text>
           </View>
           
           <View style={styles.menuItem}>
@@ -237,7 +237,7 @@ export default function ProfilEnfantScreen({ navigation }: any) {
               </View>
               <Text style={[styles.menuLabel, { color: colors.text }]}>Mon email</Text>
             </View>
-            <Text style={[styles.menuValue, { color: colors.textSecondary }]}>{userData?.email || 'Non défini'}</Text>
+            <Text style={[styles.menuValue, { color: colors.textSecondary }]}>{typeof userData?.email === 'string' ? userData.email : 'Non défini'}</Text>
           </View>
         </View>
       </AnimatedWrapper>

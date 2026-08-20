@@ -117,7 +117,7 @@ const GestionCoursScreen = ({ navigation }: any) => {
             >
               <Picker.Item label="Toutes" value="toutes" />
               {MATIERES.map((m) => (
-                <Picker.Item key={m} label={m} selectedValue={m} />
+                <Picker.Item key={m} label={m} value={m} />
               ))}
             </Picker>
           </View>
@@ -132,7 +132,7 @@ const GestionCoursScreen = ({ navigation }: any) => {
             >
               <Picker.Item label="Tous" value="tous" />
               {NIVEAUX.map((n) => (
-                <Picker.Item key={n} label={n} selectedValue={n} />
+                <Picker.Item key={n} label={n} value={n} />
               ))}
             </Picker>
           </View>

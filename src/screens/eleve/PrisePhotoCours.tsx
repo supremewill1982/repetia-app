@@ -3,13 +3,14 @@ import { View, Text, TouchableOpacity, Image, StyleSheet, Alert } from 'react-na
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from '../../context/ThemeContext';
 import { feedback } from '../../services/feedbackService';
 
-export default function PrisePhotoCours({ route, navigation }) {
+export default function PrisePhotoCours({ route, navigation }: any) {
   const { colors } = useTheme();
   const { matiere } = route.params || {};
-  const [image, setImage] = useState(null);
+  const [image, setImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const prendrePhoto = async () => {
@@ -39,7 +40,7 @@ export default function PrisePhotoCours({ route, navigation }) {
       const file = new File([await fetch(image).then(r => r.blob())], 'cours.jpg');
       const base64 = await new Promise((resolve) => {
         const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result.split(',')[1]);
+          reader.onloadend = () => resolve(typeof reader.result === 'string' ? reader.result.split(',')[1] || '' : '');
         reader.readAsDataURL(file);
       });
       navigation.navigate('QuestionRevision', { imageBase64: base64, matiere });
@@ -59,7 +60,7 @@ export default function PrisePhotoCours({ route, navigation }) {
       });
       if (!result.canceled && result.assets[0]) {
         const base64 = await FileSystem.readAsStringAsync(result.assets[0].uri, {
-          encoding: FileSystem.EncodingType.Base64,
+          encoding: 'base64',
         });
         navigation.navigate('QuestionRevision', {
           imageBase64: base64,

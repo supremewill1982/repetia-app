@@ -215,7 +215,7 @@ const RapportsIAScreen = ({ navigation }: any) => {
             >
               <Picker.Item label="Tous les types" value="tous" />
               {RAPPORT_TYPES.map((t) => (
-                <Picker.Item key={t.value} label={t.label} selectedValue={t.value} />
+                <Picker.Item key={t.value} label={t.label} value={t.value} />
               ))}
             </Picker>
           </View>
@@ -229,7 +229,7 @@ const RapportsIAScreen = ({ navigation }: any) => {
               style={{ color: colors.text, width: 150 }}
             >
               {PERIODES.map((p) => (
-                <Picker.Item key={p.value} label={p.label} selectedValue={p.value} />
+                <Picker.Item key={p.value} label={p.label} value={p.value} />
               ))}
             </Picker>
           </View>

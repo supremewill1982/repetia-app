@@ -8,6 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import { db } from '../../services/firebaseConfig';
 import { collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { payerTestCertification } from '../../services/certificationService';
 
 const MATIERES = ['Mathématiques', 'Physique-Chimie', 'Français', 'Anglais', 'Histoire-Géographie', 'SVT', 'Philosophie', 'Informatique'];
 const NIVEAUX = ['6ème', '5ème', '4ème', '3ème', 'Seconde', '1ère', 'Terminale'];
@@ -51,36 +52,71 @@ const CertificationScreen = ({ navigation }: any) => {
 
   const handleStartTest = async (testId: string) => {
     setStartingTest(true);
+
     try {
+      if (!userId) {
+        Alert.alert('Erreur', 'Utilisateur non connecté.');
+        return;
+      }
+
       // Vérifier si un test est déjà en cours
       const enCoursQuery = query(
         collection(db, 'tests_certification_en_cours'),
         where('repetiteur_id', '==', userId),
         where('statut', 'in', ['en_cours', 'non_termine'])
       );
+
       const enCoursSnapshot = await getDocs(enCoursQuery);
+
       if (!enCoursSnapshot.empty) {
-        Alert.alert('Erreur', 'Vous avez déjà un test en cours. Terminez-le d\'abord.');
+        Alert.alert(
+          'Test en cours',
+          'Vous avez déjà un test de certification en cours. Terminez-le avant d’en commencer un nouveau.'
+        );
         return;
       }
 
-      // Démarrer un nouveau test
+      const test = tests.find(t => t.id === testId);
+
+      if (!test) {
+        Alert.alert('Erreur', 'Test de certification introuvable.');
+        return;
+      }
+
+      const matiere = test.matiere || '';
+      const niveau = test.niveau || '';
+
+      // 💰 Paiement + génération du test
+      const { testId: nouveauTestId } = await payerTestCertification(
+        userId,
+        matiere,
+        niveau
+      );
+
+      // Enregistrer le test comme étant en cours
       await addDoc(collection(db, 'tests_certification_en_cours'), {
-        test_id: testId,
+        test_id: nouveauTestId,
         repetiteur_id: userId,
         repetiteur_nom: `${userData?.prenom || ''} ${userData?.nom || ''}`,
-        matiere: tests.find(t => t.id === testId)?.matiere || '',
-        niveau: tests.find(t => t.id === testId)?.niveau || '',
+        matiere,
+        niveau,
         statut: 'en_cours',
         date_debut: serverTimestamp(),
         reponses: [],
         score: null,
       });
 
-      navigation.navigate('TestCertification', { testId });
-    } catch (error) {
+      navigation.navigate('TestCertification', {
+        testId: nouveauTestId,
+      });
+
+    } catch (error: any) {
       console.error('Erreur démarrage test:', error);
-      Alert.alert('Erreur', 'Impossible de démarrer le test');
+
+      Alert.alert(
+        'Impossible de commencer le test',
+        error?.message || 'Une erreur est survenue.'
+      );
     } finally {
       setStartingTest(false);
     }

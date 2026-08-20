@@ -146,7 +146,7 @@ function MainTabs() {
   );
 }
 
-export default function EleveNavigator({ initialRoute }: { initialRoute: string }) {
+export default function EleveNavigator() {
   const { colors }                    = useTheme();
   const { userRole, userId, loading } = useAuth();
   const [isLoggedIn, setIsLoggedIn]   = useState(false);

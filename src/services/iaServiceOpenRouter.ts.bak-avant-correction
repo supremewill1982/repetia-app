@@ -1,0 +1,496 @@
+import axios from 'axios';
+import Constants from 'expo-constants';
+
+const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+
+// ✅ Clé lue depuis app.config.js → .env (plus exposée dans le code)
+const getApiKey = (): string => {
+  return Constants.expoConfig?.extra?.openRouterApiKey || '';
+};
+
+let niveauEleve = 'Terminale';
+let performanceEleve = 10;
+
+export function setNiveauEleve(niveau: string) { niveauEleve = niveau; }
+export function setPerformanceEleve(performance: number) { performanceEleve = performance; }
+
+// ══════════════════════════════════════════════════════
+// 🤖 LES 8 AGENTS IA SPÉCIALISÉS — Cœur de RÉPÉTIA
+// ══════════════════════════════════════════════════════
+export const AGENTS = [
+  {
+    id: 'maths',
+    nom: 'ProfMaths',
+    emoji: '📐',
+    matiere: 'Mathématiques',
+    couleur: '#4DA6FF',
+    signature: 'Étape par étape, tu vas comprendre.',
+    systemPrompt: (niveau: string) => `Tu es ProfMaths, professeur expert en Mathématiques.
+Tu maîtrises parfaitement le programme du Bac gabonais (séries C et D) et du BEPC.
+Tu enseignes à un élève de niveau ${niveau}.
+
+MÉTHODE PÉDAGOGIQUE :
+- Ne donne JAMAIS la réponse directement
+- Décompose chaque problème en étapes numérotées
+- Utilise des exemples concrets de la vie quotidienne africaine
+- Pour les calculs : montre chaque étape clairement
+- Si l'élève bloque : donne un indice, pas la solution
+- Encourage après chaque bonne réponse partielle
+
+DOMAINES : Algèbre, Géométrie, Analyse, Probabilités, Statistiques, Suites, Dérivées, Intégrales
+SIGNATURE : "Étape par étape, tu vas comprendre." 📐`,
+  },
+  {
+    id: 'svt',
+    nom: 'ProfSVT',
+    emoji: '🧬',
+    matiere: 'SVT',
+    couleur: '#00E5A0',
+    signature: 'La vie est partout autour de toi.',
+    systemPrompt: (niveau: string) => `Tu es ProfSVT, professeur passionné de Sciences de la Vie et de la Terre.
+Tu maîtrises le programme du Bac gabonais niveau ${niveau}.
+
+MÉTHODE PÉDAGOGIQUE :
+- Utilise des exemples de la faune et flore du Gabon (forêt équatoriale, mangroves, gorilles, okapis)
+- Fais des liens avec l'environnement tropical africain
+- Pour les schémas : décris-les avec des mots clairs
+- Mémorisation via des mnémotechniques
+
+DOMAINES : Génétique, Evolution, Physiologie, Ecosystèmes, Géologie, Cellule, Reproduction
+SIGNATURE : "La vie est partout autour de toi." 🌿`,
+  },
+  {
+    id: 'francais',
+    nom: 'ProfFrançais',
+    emoji: '✍️',
+    matiere: 'Français',
+    couleur: '#FF6B9D',
+    signature: 'Les mots sont tes armes.',
+    systemPrompt: (niveau: string) => `Tu es ProfFrançais, professeur élégant et exigeant en Langue et Littérature française.
+Tu prépares les élèves au Bac gabonais niveau ${niveau}.
+
+MÉTHODE PÉDAGOGIQUE :
+- Corrige les fautes et explique POURQUOI c'est une faute
+- Pour la dissertation : méthode thèse/antithèse/synthèse
+- Pour le commentaire composé : structure en axes thématiques
+- Cite des auteurs africains francophones (Mongo Beti, Ferdinand Oyono, etc.)
+- Enrichis le vocabulaire à chaque échange
+
+DOMAINES : Dissertation, Commentaire composé, Résumé, Expression écrite, Littérature, Grammaire
+SIGNATURE : "Les mots sont tes armes." ✍️`,
+  },
+  {
+    id: 'physique',
+    nom: 'ProfPhysique',
+    emoji: '⚡',
+    matiere: 'Physique-Chimie',
+    couleur: '#FFD700',
+    signature: 'La physique explique tout.',
+    systemPrompt: (niveau: string) => `Tu es ProfPhysique, professeur enthousiaste en Physique-Chimie.
+Tu maîtrises le programme du Bac gabonais séries C et D, niveau ${niveau}.
+
+MÉTHODE PÉDAGOGIQUE :
+- Commence toujours par les formules fondamentales
+- Montre les unités à chaque calcul (SI)
+- Donne des exemples pratiques concrets (électricité au Gabon, eau, chaleur tropicale)
+- Applications numériques étape par étape
+- Schémas décrits clairement (circuits, forces, etc.)
+
+DOMAINES : Mécanique, Electricité, Optique, Thermodynamique, Chimie organique, Solutions
+SIGNATURE : "La physique explique tout." ⚡`,
+  },
+  {
+    id: 'histgeo',
+    nom: 'ProfHistGéo',
+    emoji: '🌍',
+    matiere: 'Histoire-Géographie',
+    couleur: '#FF8C42',
+    signature: 'Connais ton histoire, bâtis ton futur.',
+    systemPrompt: (niveau: string) => `Tu es ProfHistGéo, professeur passionné par l'Histoire de l'Afrique et la Géographie mondiale.
+Tu enseignes au niveau ${niveau} selon le programme gabonais.
+
+MÉTHODE PÉDAGOGIQUE :
+- Mets toujours l'Afrique et le Gabon au centre de l'analyse
+- Dates clés : aide à mémoriser avec des liens logiques
+- Géographie : pars du local (Gabon, CEMAC) vers le mondial
+- Donne le contexte politique et social africain
+- Méthode dissertation historique : situation, faits, conséquences
+
+DOMAINES : Histoire Afrique/Monde, Géopolitique, Géographie humaine/économique, Colonisation, Décolonisation
+SIGNATURE : "Connais ton histoire, bâtis ton futur." 🌍`,
+  },
+  {
+    id: 'philo',
+    nom: 'ProfPhilo',
+    emoji: '🧠',
+    matiere: 'Philosophie',
+    couleur: '#8B5CF6',
+    signature: "Qu'en penses-tu, toi ?",
+    systemPrompt: (niveau: string) => `Tu es ProfPhilo, maître de la pensée critique et de la philosophie.
+Tu prépares les élèves au Bac gabonais niveau ${niveau}.
+
+MÉTHODE PÉDAGOGIQUE SOCRATIQUE :
+- Ne donne JAMAIS la réponse directement
+- Réponds à chaque affirmation par une question plus profonde
+- Méthode dissertation : problématisation → développement → conclusion
+- Cite les philosophes au programme (Platon, Descartes, Kant, Hegel, Sartre, etc.)
+- Fais des liens avec la philosophie africaine (Ubuntu, Senghor, etc.)
+- Pousse l'élève à définir ses propres concepts
+
+DOMAINES : Liberté, Vérité, Justice, Langage, Conscience, Art, Politique, Religion, Science
+SIGNATURE : "Qu'en penses-tu, toi ?" 🧠`,
+  },
+  {
+    id: 'anglais',
+    nom: 'ProfAnglais',
+    emoji: '🇬🇧',
+    matiere: 'Anglais',
+    couleur: '#4ECDC4',
+    signature: 'English opens all doors.',
+    systemPrompt: (niveau: string) => `Tu es ProfAnglais, professeur bilingue français-anglais.
+Tu prépares les élèves au Bac gabonais niveau ${niveau}.
+
+MÉTHODE PÉDAGOGIQUE :
+- Réponds en FRANÇAIS mais insère de l'anglais progressivement
+- Corrige la grammaire avec des explications en français
+- Expression écrite : structure paragraphes topic sentence/développement/conclusion
+- Oral : prononciation, fluidité, vocabulaire courant
+- Vocabulaire : donne toujours le contexte d'utilisation
+
+DOMAINES : Grammaire, Expression écrite, Compréhension, Vocabulaire, Civilisation anglophone, Oral
+SIGNATURE : "English opens all doors." 🇬🇧`,
+  },
+  {
+    id: 'info',
+    nom: 'ProfInfo',
+    emoji: '💻',
+    matiere: 'Informatique',
+    couleur: '#45B7D1',
+    signature: 'Le code, c\'est le futur.',
+    systemPrompt: (niveau: string) => `Tu es ProfInfo, professeur expert en Informatique et Technologies.
+Tu enseignes au niveau ${niveau} selon le programme gabonais.
+
+MÉTHODE PÉDAGOGIQUE :
+- Explique les algorithmes étape par étape (pseudo-code d'abord)
+- Bureautique : Word, Excel, PowerPoint niveau Bac
+- Réseaux : explications simples avec des analogies
+- Donne des exemples pratiques adaptés au contexte africain
+- Pour la programmation : commence par l'algorithmique avant le code
+
+DOMAINES : Algorithmique, Bureautique, Réseaux, Bases de données, Internet, Sécurité
+SIGNATURE : "Le code, c'est le futur." 💻`,
+  },
+];
+
+export function getAgent(agentId: string) {
+  return AGENTS.find(a => a.id === agentId) || AGENTS[0];
+}
+
+// ══════════════════════════════════════════════════════
+// 💬 CHAT AVEC UN AGENT SPÉCIALISÉ (nouvelle fonction principale)
+// ══════════════════════════════════════════════════════
+export async function chatAvecAgent(
+  agentId: string,
+  message: string,
+  historique: { role: 'user' | 'assistant'; content: string }[],
+  niveauClasse?: string,
+  imageBase64?: string
+): Promise<{ message: string }> {
+  try {
+    const agent = getAgent(agentId);
+    const niveau = niveauClasse || niveauEleve;
+    const systemPrompt = agent.systemPrompt(niveau);
+
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      ...historique.slice(-10), // Garde les 10 derniers messages pour le contexte
+      {
+        role: 'user',
+        content: imageBase64
+          ? [
+              { type: 'text', text: message },
+              { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${imageBase64}` } },
+            ]
+          : message,
+      },
+    ];
+
+    const response = await axios.post(
+      API_URL,
+      {
+        model: 'google/gemini-flash-1.5',
+        messages,
+        max_tokens: 1000,
+        temperature: 0.7,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${getApiKey()}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    const content = response.data.choices[0]?.message?.content;
+    return { message: content || "Je n'ai pas bien compris. Peux-tu reformuler ?" };
+  } catch (error) {
+    console.error('❌ Erreur chatAvecAgent:', error);
+    return { message: "Désolé, je rencontre une difficulté technique. Réessaie dans un instant." };
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// 📸 FONCTIONS EXISTANTES (inchangées, clé sécurisée)
+// ══════════════════════════════════════════════════════
+export async function extraireTexteCours(
+  pdfBase64: string,
+  matiere: string
+): Promise<string> {
+  try {
+    const geminiApiKey =
+      Constants.expoConfig?.extra?.geminiApiKey || '';
+
+    if (!geminiApiKey) {
+      console.error('❌ Clé Gemini absente');
+      return '';
+    }
+
+    const prompt = `Tu es un professeur expert en ${matiere || 'pédagogie'}.
+
+Analyse attentivement le document PDF fourni et extrais uniquement son contenu pédagogique réel.
+
+Structure ta réponse en :
+1) Notions principales
+2) Définitions importantes
+3) Formules ou règles essentielles
+4) Exemples et exercices présents dans le document
+5) Points importants à retenir
+
+Réponds en français, de manière claire et fidèle au document.
+Ne fabrique aucune information absente du document.
+Le résultat servira directement à alimenter une base de connaissances RAG.`;
+
+    const response = await axios.post(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${geminiApiKey}`,
+      {
+        contents: [
+          {
+            parts: [
+              {
+                text: prompt,
+              },
+              {
+                inline_data: {
+                  mime_type: 'application/pdf',
+                  data: pdfBase64,
+                },
+              },
+            ],
+          },
+        ],
+        generationConfig: {
+          temperature: 0.2,
+          maxOutputTokens: 3000,
+        },
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    const contenu =
+      response.data?.candidates?.[0]?.content?.parts
+        ?.map((part: any) => part.text || '')
+        .join('')
+        .trim() || '';
+
+    if (!contenu) {
+      console.warn('⚠️ Gemini n’a retourné aucun contenu');
+      return '';
+    }
+
+    console.log('✅ Extraction PDF Gemini réussie');
+    return contenu;
+  } catch (error: any) {
+    console.error(
+      '❌ Erreur extraction PDF Gemini:',
+      error?.response?.data || error?.message || error
+    );
+    return '';
+  }
+}
+
+export async function genererQuestionsCours(contenuCours: string, matiere: string): Promise<any[]> {
+  try {
+    const safeContenu = contenuCours || "Contenu du cours non disponible";
+    const contenuLimit = safeContenu.length > 1500 ? safeContenu.substring(0, 1500) : safeContenu;
+
+    const prompt = `Tu es un professeur expert en ${matiere || 'pédagogie'}.
+À partir du cours suivant, génère 8 questions de révision VARIÉES et SPÉCIFIQUES.
+
+CONTENU DU COURS:
+${contenuLimit}
+
+RÈGLES IMPORTANTES:
+1. Les questions doivent PORTER DIRECTEMENT sur le contenu fourni
+2. Varie les types: compréhension, application, mémorisation
+3. Adapte la difficulté au niveau ${niveauEleve}
+4. Ne pose PAS de questions génériques
+
+Réponds UNIQUEMENT en JSON:
+{
+  "questions": [
+    {
+      "texte": "Question spécifique sur le cours",
+      "difficulte": "facile|moyen|difficile",
+      "type": "comprehension|application|memorisation",
+      "points": 2,
+      "issueDuCours": true
+    }
+  ]
+}`;
+
+    const response = await axios.post(API_URL, {
+      model: 'google/gemini-flash-1.5',
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 1500,
+      temperature: 0.4,
+    }, {
+      headers: { Authorization: `Bearer ${getApiKey()}`, 'Content-Type': 'application/json' },
+    });
+
+    const contenu = response.data.choices[0]?.message?.content;
+    if (!contenu) throw new Error('Pas de réponse');
+
+    const cleaned = contenu.replace(/```json\s*|\s*```/g, '').trim();
+    const match = cleaned.match(/\{[\s\S]*\}/);
+    if (match) {
+      const parsed = JSON.parse(match[0]);
+      if (parsed.questions && Array.isArray(parsed.questions) && parsed.questions.length > 0) {
+        return parsed.questions;
+      }
+    }
+    throw new Error('Format invalide');
+  } catch (error) {
+    console.error('❌ Erreur génération questions:', error);
+    return genererQuestionsSecours(matiere, contenuCours);
+  }
+}
+
+function genererQuestionsSecours(matiere: string, contenu: string): any[] {
+  const safeContenu = contenu || "cours";
+  const motsCles = safeContenu.split(' ').slice(0, 20).join(' ');
+  const motsClesLimit = motsCles.length > 50 ? motsCles.substring(0, 50) : motsCles;
+
+  return [
+    { texte: `D'après le cours, quelle est l'idée principale de "${motsClesLimit}..." ?`, difficulte: 'facile', type: 'comprehension', points: 2 },
+    { texte: `Explique avec tes propres mots ce que tu as retenu de ce cours sur ${matiere || 'la matière'}.`, difficulte: 'moyen', type: 'application', points: 2 },
+    { texte: `Quel est le concept le plus important de ce cours ?`, difficulte: 'facile', type: 'memorisation', points: 2 },
+    { texte: `Comment appliquerais-tu cette notion dans un exercice pratique ?`, difficulte: 'difficile', type: 'application', points: 2 },
+    { texte: `Quels sont les 3 points clés à retenir de ce cours ?`, difficulte: 'moyen', type: 'comprehension', points: 2 },
+  ];
+}
+
+export async function evaluerReponseRevision(
+  question: string,
+  reponseEleve: string,
+  essai: number = 1,
+  matiere?: string
+): Promise<{ note: number; feedback: string }> {
+  try {
+    const safeQuestion = question || "Question non spécifiée";
+    const safeReponse = reponseEleve || "";
+
+    const prompt = `Tu es un professeur bienveillant évaluant un élève de ${niveauEleve}.
+
+QUESTION POSÉE: ${safeQuestion}
+RÉPONSE DE L'ÉLÈVE (essai n°${essai}): ${safeReponse}
+
+RÈGLES D'ÉVALUATION:
+- Note 2: Réponse complète, précise, bonne compréhension
+- Note 1: Réponse partielle, idée principale présente
+- Note 0: Réponse incorrecte ou hors sujet
+
+RÉPONDS UNIQUEMENT EN JSON:
+{
+  "note": 0,
+  "feedback": "feedback constructif expliquant la note et comment s'améliorer"
+}`;
+
+    const response = await axios.post(API_URL, {
+      model: 'google/gemini-flash-1.5',
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 300,
+      temperature: 0.2,
+    }, {
+      headers: { Authorization: `Bearer ${getApiKey()}`, 'Content-Type': 'application/json' },
+    });
+
+    const contenu = response.data.choices[0]?.message?.content;
+    if (!contenu) return evaluerReponseFallback(safeReponse, essai);
+
+    const cleaned = contenu.replace(/```json\s*|\s*```/g, '').trim();
+    const match = cleaned.match(/\{[\s\S]*\}/);
+    if (match) {
+      const parsed = JSON.parse(match[0]);
+      return {
+        note: Math.min(2, Math.max(0, parsed.note || 0)),
+        feedback: parsed.feedback || "Continue tes efforts !",
+      };
+    }
+    return evaluerReponseFallback(safeReponse, essai);
+  } catch (error) {
+    console.error('❌ Erreur évaluation:', error);
+    return evaluerReponseFallback(reponseEleve || "", essai);
+  }
+}
+
+function evaluerReponseFallback(reponse: string, essai: number): { note: number; feedback: string } {
+  const longueur = (reponse || "").trim().length;
+  if (longueur > 100) return { note: 2, feedback: "Bravo ! Réponse détaillée et pertinente." };
+  if (longueur > 30) return { note: 1, feedback: "Bonne base ! Développe davantage ta réponse." };
+  if (essai >= 3) return { note: 0, feedback: "Prends le temps de mieux structurer ta réponse." };
+  return { note: 0, feedback: "Ta réponse est trop courte. Développe ta pensée avec des exemples." };
+}
+
+export async function analyserDevoir(imageBase64: string, matiere?: string): Promise<string> {
+  try {
+    const response = await axios.post(API_URL, {
+      model: 'google/gemini-flash-1.5',
+      messages: [
+        { role: 'system', content: `Tu es un professeur de ${matiere || 'mathématiques'}. Extrais UNIQUEMENT la ou les questions du devoir de manière précise.` },
+        { role: 'user', content: [
+          { type: 'text', text: 'Voici le devoir. Quelle est la question exacte ?' },
+          { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${imageBase64}` } }
+        ]}
+      ],
+      max_tokens: 500,
+      temperature: 0.2,
+    }, {
+      headers: { Authorization: `Bearer ${getApiKey()}`, 'Content-Type': 'application/json' },
+    });
+    return response.data.choices[0]?.message?.content || "Peux-tu reformuler la question du devoir ?";
+  } catch (error) {
+    return "Décris-moi l'exercice avec tes mots, je t'aiderai à le résoudre.";
+  }
+}
+
+export async function verifierReponse(question: string, reponseEleve: string, essai = 1): Promise<{ correct: boolean; feedback: string }> {
+  const result = await evaluerReponseRevision(question, reponseEleve, essai);
+  return { correct: result.note >= 1.5, feedback: result.feedback };
+}
+
+export async function chatCoaching(message: string, contexte: string, contenuCours: string, matiere: string): Promise<{ message: string }> {
+  return chatAvecAgent('maths', message, [], niveauEleve);
+}
+
+export async function analyserDevoirAvecRetry(imageBase64: string, maxRetries = 3): Promise<string> {
+  for (let i = 0; i < maxRetries; i++) {
+    const result = await analyserDevoir(imageBase64);
+    if (!result.includes("erreur") && result.length > 20) return result;
+    if (i < maxRetries - 1) await new Promise(r => setTimeout(r, 2000));
+  }
+  return "Je n'arrive pas à lire clairement ton devoir. Peux-tu prendre une photo plus nette ?";
+}

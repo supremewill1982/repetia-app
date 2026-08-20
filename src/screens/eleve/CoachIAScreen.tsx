@@ -11,8 +11,9 @@ import * as FileSystem from 'expo-file-system';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { chargerContexteEleve, contexteEleve } from '../../services/iaCoachingService';
-import { AGENTS, chatAvecAgent, getAgent } from '../../services/iaServiceOpenRouter';
+import { AGENTS, getAgent } from '../../services/iaServiceOpenRouter';
 import { incrementCoachCount } from '../../services/badgesService';
+import { utiliserAgent } from '../../services/agents/agentManager';
 
 type Message = { role: 'user' | 'assistant'; content: string; attachment?: string };
 
@@ -37,7 +38,7 @@ export default function CoachIAScreen({ navigation }: any) {
       try {
         await chargerContexteEleve();
         const prenom = contexteEleve?.prenom || (userData as any)?.prenom || 'élève';
-        const niveau = contexteEleve?.niveau || 'Terminale';
+        const niveau = String(contexteEleve?.niveau || (userData as any)?.classe || '');
         setConversation([{
           role: 'assistant',
           content: `Bonjour ${prenom} ! 👋\n\nJe suis ${selectedAgent.nom}, ton prof de ${selectedAgent.matiere} (niveau: ${niveau}).\n\n${selectedAgent.signature}\n\nTu peux me poser des questions, m'envoyer une photo de cours ou un exercice PDF ! 📚`,
@@ -61,7 +62,7 @@ export default function CoachIAScreen({ navigation }: any) {
     setSelectedAgentId(agentId);
     const agent = getAgent(agentId);
     const prenom = contexteEleve?.prenom || (userData as any)?.prenom || 'élève';
-    const niveau = contexteEleve?.niveau || 'Terminale';
+    const niveau = String(contexteEleve?.niveau || (userData as any)?.classe || '');
     setAttachedImage(null);
     setAttachedLabel(null);
     setConversation([{
@@ -102,7 +103,7 @@ export default function CoachIAScreen({ navigation }: any) {
       });
       if (!result.canceled && result.assets[0]) {
         const base64 = await FileSystem.readAsStringAsync(result.assets[0].uri, {
-          encoding: FileSystem.EncodingType.Base64,
+          encoding: 'base64',
         });
         setAttachedImage(base64);
         setAttachedLabel(`📄 ${result.assets[0].name}`);
@@ -140,16 +141,20 @@ export default function CoachIAScreen({ navigation }: any) {
       }
 
       const historique = newConversation.slice(0, -1).slice(-8);
-      const niveau = contexteEleve?.niveau || selectedAgentId === 'philo' ? 'Terminale' : 'Seconde';
-      const reponse = await chatAvecAgent(
-        selectedAgentId,
+      const niveau = String(contexteEleve?.niveau || (userData as any)?.classe || '');
+      const reponse = await utiliserAgent(
+        'tuteur',
         promptFinal,
-        historique,
-        niveau,
-        imageToSend || undefined,
+        {
+          userId: (userData as any)?.uid || '',
+          userRole: 'eleve',
+          matiere: selectedAgentId,
+          niveau,
+          historique,
+        }
       );
 
-      setConversation(prev => [...prev, { role: 'assistant', content: reponse.message }]);
+      setConversation(prev => [...prev, { role: 'assistant', content: reponse }]);
       setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 150);
     } catch (error) {
       console.error('Erreur envoyerMessage:', error);
@@ -279,7 +284,7 @@ export default function CoachIAScreen({ navigation }: any) {
               style={[styles.input, { color: colors.text, backgroundColor: colors.background, borderColor: colors.border }]}
               placeholder={`Question à ${selectedAgent.nom}...`}
               placeholderTextColor={colors.textMuted}
-              selectedValue={message}
+             
               onChangeText={setMessage}
               multiline
               maxLength={600}

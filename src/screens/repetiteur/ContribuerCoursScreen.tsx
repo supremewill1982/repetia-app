@@ -12,6 +12,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
+import { extraireTexteCours } from '../../services/iaServiceOpenRouter';
 
 const MATIERES = ['Mathématiques', 'Physique-Chimie', 'Français', 'Anglais', 'Histoire-Géographie', 'SVT', 'Philosophie', 'Informatique'];
 const NIVEAUX = ['6ème', '5ème', '4ème', '3ème', 'Seconde', '1ère', 'Terminale'];
@@ -50,14 +51,18 @@ const ContribuerCoursScreen = ({ navigation }: any) => {
         const asset = result.assets[0];
         const fileInfo = await FileSystem.getInfoAsync(asset.uri);
 
-        if (fileInfo.size > 10 * 1024 * 1024) {
+        if (fileInfo.exists && 'size' in fileInfo && typeof fileInfo.size === 'number' && fileInfo.size > 10 * 1024 * 1024) {
           Alert.alert('Erreur', 'Le fichier est trop grand (max 10Mo)');
           return;
         }
 
         setFormData({...formData, fichier: asset.uri});
         setFileName(asset.name);
-        setFileSize(Math.round(fileInfo.size / 1024));
+        setFileSize(
+            fileInfo.exists && 'size' in fileInfo && typeof fileInfo.size === 'number'
+              ? Math.round(fileInfo.size / 1024)
+              : 0
+          );
       }
     } catch (error) {
       console.error('Erreur sélection fichier:', error);
@@ -80,12 +85,41 @@ const ContribuerCoursScreen = ({ navigation }: any) => {
     try {
       setLoading(true);
 
-      // Upload du fichier
-      const fileRef = ref(storage, `contributions/${userId}/${Date.now()}_${formData.titre.replace(/\s+/g, '_')}`);
-      const fileBlob = await FileSystem.readAsStringAsync(formData.fichier);
-      const blob = new Blob([fileBlob], { type: 'application/pdf' });
-      await uploadBytes(fileRef, await blob.arrayBuffer());
+      // Lire le fichier une seule fois en base64
+      const fileBase64 = await FileSystem.readAsStringAsync(formData.fichier, {
+        encoding: 'base64',
+      });
+
+      // Upload du fichier vers Firebase Storage
+      const fileRef = ref(
+        storage,
+        `contributions/${userId}/${Date.now()}_${formData.titre.replace(/\s+/g, '_')}`
+      );
+
+      const binaryString = atob(fileBase64);
+      const bytes = new Uint8Array(binaryString.length);
+
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+
+      await uploadBytes(fileRef, bytes, {
+        contentType: 'application/pdf',
+      });
+
       const fileUrl = await getDownloadURL(fileRef);
+
+      // Extraire le contenu pédagogique pour le RAG
+      let contenuTexte = '';
+
+      try {
+        contenuTexte = await extraireTexteCours(
+          fileBase64,
+          formData.matiere
+        );
+      } catch (e) {
+        console.warn('⚠️ Extraction texte contribution échouée:', e);
+      }
 
       // Sauvegarde dans Firestore
       await addDoc(collection(db, 'contributions'), {
@@ -94,13 +128,14 @@ const ContribuerCoursScreen = ({ navigation }: any) => {
         niveau: formData.niveau,
         type: formData.type,
         description: formData.description.trim(),
+        contenuTexte: contenuTexte || null,
         tags: formData.tags.split(',').map((t: string) => t.trim()).filter((t: string) => t.length > 0),
         prix: formData.prix,
         fichier: {
           url: fileUrl,
           nom: fileName,
           taille: fileSize,
-          type: fileName.split('.').pop().toLowerCase(),
+          type: fileName.split('.').pop()?.toLowerCase() || '',
         },
         auteur: {
           userId: userId,
@@ -147,7 +182,7 @@ const ContribuerCoursScreen = ({ navigation }: any) => {
           style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
           placeholder="Titre de votre contribution"
           placeholderTextColor={colors.textMuted}
-          selectedValue={formData.titre}
+          value={formData.titre}
           onChangeText={(text) => setFormData({...formData, titre: text})}
         />
 
@@ -160,7 +195,7 @@ const ContribuerCoursScreen = ({ navigation }: any) => {
             style={{ color: colors.text }}
           >
             {TYPES.map((t) => (
-              <Picker.Item key={t.value} label={t.label} selectedValue={t.value} />
+              <Picker.Item key={t.value} label={t.label} value={t.value} />
             ))}
           </Picker>
         </View>
@@ -174,7 +209,7 @@ const ContribuerCoursScreen = ({ navigation }: any) => {
             style={{ color: colors.text }}
           >
             {MATIERES.map((m) => (
-              <Picker.Item key={m} label={m} selectedValue={m} />
+              <Picker.Item key={m} label={m} value={m} />
             ))}
           </Picker>
         </View>
@@ -188,7 +223,7 @@ const ContribuerCoursScreen = ({ navigation }: any) => {
             style={{ color: colors.text }}
           >
             {NIVEAUX.map((n) => (
-              <Picker.Item key={n} label={n} selectedValue={n} />
+              <Picker.Item key={n} label={n} value={n} />
             ))}
           </Picker>
         </View>
@@ -199,7 +234,7 @@ const ContribuerCoursScreen = ({ navigation }: any) => {
           style={[styles.textArea, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
           placeholder="Décrivez le contenu de votre contribution..."
           placeholderTextColor={colors.textMuted}
-          selectedValue={formData.description}
+          value={formData.description}
           onChangeText={(text) => setFormData({...formData, description: text})}
           multiline
           numberOfLines={4}
@@ -212,7 +247,7 @@ const ContribuerCoursScreen = ({ navigation }: any) => {
           style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
           placeholder="Ex: dérivées, calcul, fonctions"
           placeholderTextColor={colors.textMuted}
-          selectedValue={formData.tags}
+          value={formData.tags}
           onChangeText={(text) => setFormData({...formData, tags: text})}
         />
 
@@ -222,7 +257,7 @@ const ContribuerCoursScreen = ({ navigation }: any) => {
           style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
           placeholder="Ex: 5000"
           placeholderTextColor={colors.textMuted}
-          selectedValue={formData.prix.toString()}
+          value={formData.prix.toString()}
           onChangeText={(text) => setFormData({...formData, prix: text ? parseInt(text) : 0})}
           keyboardType="numeric"
         />

@@ -50,8 +50,8 @@ export default function MesReservationsTuteurScreen() {
         { text: 'Annuler', style: 'cancel' },
         {
           text: 'Valider',
-          onPress: async (text) => {
-            const montant = parseInt(text || '', 10);
+          onPress: async () => {
+            const montant = 0;
             if (isNaN(montant) || montant <= 0) {
               Alert.alert('Erreur', 'Montant invalide.');
               return;

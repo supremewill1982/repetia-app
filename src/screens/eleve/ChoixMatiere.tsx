@@ -16,12 +16,14 @@ import { feedback } from '../../services/feedbackService';
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 60) / 2;
 
-export default function ChoixMatiere({ navigation, route }) {
+type Props = { navigation: any; route: any };
+
+export default function ChoixMatiere({ navigation, route }: Props) {
   const { colors } = useTheme();
   const { type } = route.params;
   const matieres = getAllMatieres();
 
-  const handleMatiereChoisie = (matiere) => {
+  const handleMatiereChoisie = (matiere: any) => {
     feedback('tap');
     if (type === 'revision') {
       navigation.navigate('PrisePhotoCours', { matiere: matiere.nom, type });
@@ -49,7 +51,7 @@ export default function ChoixMatiere({ navigation, route }) {
             activeOpacity={0.7}
           >
             <View style={[styles.iconContainer, { backgroundColor: matiere.couleur + '20' }]}>
-              <MaterialCommunityIcons name={matiere.icone} size={36} color={matiere.couleur} />
+              <MaterialCommunityIcons name={matiere.icone as any} size={36} color={matiere.couleur} />
             </View>
             <Text style={[styles.matiereNom, { color: colors.text }]} numberOfLines={2} adjustsFontSizeToFit>
               {matiere.nom}

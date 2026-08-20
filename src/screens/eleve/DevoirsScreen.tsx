@@ -28,18 +28,37 @@ export default function DevoirsScreen({ navigation }: any) {
     try {
       const user = auth.currentUser;
       if (!user) return;
+
       const db = getFirestore();
       const q = query(
-        collection(db, 'devoirs'),
-        where('userId', '==', user.uid),
-        orderBy('createdAt', 'desc')
+        collection(db, 'sessions'),
+        where('enfantId', '==', user.uid)
       );
+
       const snapshot = await getDocs(q);
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      const data = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter((session: any) => session.type === 'devoir')
+        .sort((a: any, b: any) => {
+          const da = a.createdAt?.toDate?.()?.getTime?.() || 0;
+          const db = b.createdAt?.toDate?.()?.getTime?.() || 0;
+          return db - da;
+        })
+        .map((session: any) => ({
+          ...session,
+          note: session.noteSur20 ?? session.note ?? (
+            session.scoreMax
+              ? Math.round(((session.score || 0) / session.scoreMax) * 20 * 10) / 10
+              : 0
+          ),
+          status: session.status || 'termine',
+        }));
+
       setDevoirs(data);
       setDerniersDevoirs(data.slice(0, 3));
     } catch (error) {
-      console.error(error);
+      console.error('Erreur chargement devoirs:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -101,7 +120,7 @@ export default function DevoirsScreen({ navigation }: any) {
             <TouchableOpacity
               key={devoir.id}
               style={[styles.devoirCard, { borderBottomColor: colors.border }]}
-              onPress={() => navigation.navigate('CorrectionDevoir', { devoir })}
+              onPress={() => navigation.navigate('DetailsSessionScreen', { session: devoir })}
             >
               <View style={styles.devoirInfo}>
                 <Text style={[styles.devoirMatiere, { color: colors.primary }]}>{devoir.matiere}</Text>

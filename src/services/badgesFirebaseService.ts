@@ -2,7 +2,7 @@ import { db } from './firebaseConfig';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth } from './firebaseConfig';
 
-export async function sauvegarderBadgesFirebase(badges) {
+export async function sauvegarderBadgesFirebase(badges: unknown) {
   try {
     const user = auth.currentUser;
     if (!user) {
@@ -50,27 +50,55 @@ export async function getBadgesFirebase() {
 
 export async function synchroniserBadges() {
   try {
-    // Import dynamique pour éviter les dépendances circulaires
+    // Import dynamique pour éviter les dépendances circulaires.
     const { getBadgesDeBloques, sauvegarderBadges } = require('./badgesService');
-    
+
+    const user = auth.currentUser;
+    if (!user) {
+      console.warn('⚠️ synchroniserBadges: aucun utilisateur connecté');
+      return null;
+    }
+
+    const uid = user.uid;
+
     const badgesLocaux = await getBadgesDeBloques();
     const badgesFirebase = await getBadgesFirebase();
-    
-    const badgesExistants = new Map();
-    if (badgesFirebase && Array.isArray(badgesFirebase)) {
-      badgesFirebase.forEach(b => badgesExistants.set(b.id, b));
-    }
-    if (badgesLocaux && Array.isArray(badgesLocaux)) {
-      badgesLocaux.forEach(b => {
-        if (!badgesExistants.has(b.id)) badgesExistants.set(b.id, b);
+
+    const badgesExistants = new Map<string, any>();
+
+    // Firebase et local appartiennent obligatoirement au même UID.
+    if (Array.isArray(badgesFirebase)) {
+      badgesFirebase.forEach((badge: any) => {
+        if (badge?.id) badgesExistants.set(badge.id, badge);
       });
     }
+
+    if (Array.isArray(badgesLocaux)) {
+      badgesLocaux.forEach((badge: any) => {
+        if (badge?.id && !badgesExistants.has(badge.id)) {
+          badgesExistants.set(badge.id, badge);
+        }
+      });
+    }
+
     const badgesFusionnes = Array.from(badgesExistants.values());
-    
+
+    // Protection contre un logout/login pendant l'opération.
+    if (auth.currentUser?.uid !== uid) {
+      console.warn('⚠️ UID changé pendant synchronisation badges — écriture annulée');
+      return null;
+    }
+
     await sauvegarderBadges(badgesFusionnes);
+
+    if (auth.currentUser?.uid !== uid) {
+      console.warn('⚠️ UID changé avant Firebase — écriture annulée');
+      return null;
+    }
+
     await sauvegarderBadgesFirebase(badgesFusionnes);
-    
-    console.log(`🔄 Badges synchronisés: ${badgesFusionnes.length} badges`);
+
+    console.log(`🔄 Badges synchronisés pour ${uid}: ${badgesFusionnes.length}`);
     return badgesFusionnes;
   } catch (error) {
     console.error('❌ Erreur synchronisation badges:', error);

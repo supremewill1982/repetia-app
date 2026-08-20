@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 
-export default function DetailsSessionScreen({ route, navigation }) {
+export default function DetailsSessionScreen({ route, navigation }: any) {
   const { colors } = useTheme();
   const { matiere, date, questions, note } = route.params;
   
@@ -31,7 +31,7 @@ export default function DetailsSessionScreen({ route, navigation }) {
         <Text style={[styles.sectionTitle, { color: colors.text }]}>📋 Détail des questions</Text>
         <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>2/2 = juste • 1/2 = partiel • 0/2 = incorrect</Text>
         
-        {questions.map((q, idx) => {
+        {questions.map((q: any, idx: number) => {
           const noteQ = (q.note * 10) || 0;
           const noteColor = getNoteColor(noteQ);
           const iconName = q.note === 2 ? 'check-circle' : q.note === 1 ? 'progress-check' : 'close-circle';
