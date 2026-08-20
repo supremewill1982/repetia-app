@@ -14,3 +14,7 @@ ios/
 .DS_Store
 Thumbs.db
 .cache/
+# Codex development only
+.agents/
+PROJECT_MEMORY.md
+WORKFLOW_MEMORY.md
