@@ -1,7 +1,7 @@
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
 import { db, storage } from './firebaseConfig';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 export const uploadProfileImage = async (userId: string, imageUri: string) => {
   try {
@@ -12,15 +12,20 @@ export const uploadProfileImage = async (userId: string, imageUri: string) => {
     await uploadBytes(storageRef, blob, { contentType: blob.type || 'image/jpeg' });
     const downloadURL = await getDownloadURL(storageRef);
 
-    // Les profils sont stockés dans users et, pour les répétiteurs, dans tuteurs.
     await setDoc(doc(db, 'users', userId), {
       profileImage: downloadURL,
       profileImageUpdatedAt: serverTimestamp(),
     }, { merge: true });
-    await setDoc(doc(db, 'tuteurs', userId), {
-      profileImage: downloadURL,
-      avatar: downloadURL,
-    }, { merge: true });
+
+    // Ne crée jamais un faux profil tuteur pour un élève/parent.
+    const tuteurRef = doc(db, 'tuteurs', userId);
+    const tuteurSnap = await getDoc(tuteurRef);
+    if (tuteurSnap.exists()) {
+      await setDoc(tuteurRef, {
+        profileImage: downloadURL,
+        avatar: downloadURL,
+      }, { merge: true });
+    }
 
     return downloadURL;
   } catch (error) {
