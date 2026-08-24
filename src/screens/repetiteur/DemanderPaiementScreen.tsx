@@ -27,16 +27,22 @@ export default function DemanderPaiementScreen() {
     if (!userId) { setLoading(false); return; }
     setLoading(true);
     try {
-      const tuteurSnap = await getDoc(doc(db, 'tuteurs', userId));
-      const userSnap = await getDoc(doc(db, 'users', userId));
+      const [tuteurSnap, userSnap, demandesSnap] = await Promise.all([
+        getDoc(doc(db, 'tuteurs', userId)),
+        getDoc(doc(db, 'users', userId)),
+        getDocs(query(collection(db, 'demandes_paiement'), where('repetiteur_id', '==', userId))),
+      ]);
       const tuteurData = tuteurSnap.exists() ? tuteurSnap.data() : {};
-      const userDataFirestore = userSnap.exists() ? userSnap.data() : {};
-      setSolde(Number(tuteurData.solde ?? userDataFirestore.solde ?? 0));
-      const snap = await getDocs(query(collection(db, 'demandes_paiement'), where('repetiteur_id', '==', userId)));
-      setHistorique(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      const userFirestore = userSnap.exists() ? userSnap.data() : {};
+      setSolde(Number(tuteurData.solde ?? userFirestore.solde ?? 0));
+      setHistorique(demandesSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     } catch (error) {
       console.error('Erreur chargement données paiement:', error);
-      Alert.alert('Paiement','Impossible de charger vos données de paiement. Vérifiez votre connexion puis réessayez.');
+      try {
+        const tuteurSnap = await getDoc(doc(db, 'tuteurs', userId));
+        if (tuteurSnap.exists()) setSolde(Number(tuteurSnap.data().solde ?? 0));
+      } catch {}
+      Alert.alert('Paiement', 'Certaines données de paiement sont temporairement indisponibles.');
     } finally { setLoading(false); }
   }, [userId]);
 
@@ -58,13 +64,13 @@ export default function DemanderPaiementScreen() {
   };
 
   if (loading) return <View style={[styles.center,{backgroundColor:colors.background}]}><ActivityIndicator size="large" color={colors.primary}/></View>;
-  return <KeyboardAvoidingView style={[styles.container,{backgroundColor:colors.background}]} behavior={Platform.OS==='ios'?'padding':'height'} keyboardVerticalOffset={Platform.OS==='ios'?12:72}>
-    <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+  return <KeyboardAvoidingView style={[styles.container,{backgroundColor:colors.background}]} behavior={Platform.OS==='ios'?'padding':'height'} keyboardVerticalOffset={Platform.OS==='ios'?12:0}>
+    <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
       <View style={styles.header}><View><Text style={[styles.title,{color:colors.text}]}>Paiement</Text><Text style={[styles.subtitle,{color:colors.textMuted}]}>Retirez vos revenus simplement</Text></View></View>
       <View style={[styles.balance,{backgroundColor:colors.primary}]}><Text style={styles.balanceLabel}>Solde disponible</Text><Text style={styles.balanceValue}>{solde.toLocaleString('fr-FR')} FCFA</Text><Text style={styles.balanceHint}>Retrait minimum : 5 000 FCFA</Text></View>
       <View style={[styles.card,{backgroundColor:colors.surface,borderColor:colors.border}]}>
         <Text style={[styles.cardTitle,{color:colors.text}]}>Demander un retrait</Text>
-        <Text style={[styles.label,{color:colors.text}]}>Montant</Text><TextInput value={montant} onChangeText={setMontant} placeholder="Ex. 25 000" placeholderTextColor={colors.textMuted} keyboardType="number-pad" style={[styles.input,{backgroundColor:colors.background,borderColor:colors.border,color:colors.text}]}/>
+        <Text style={[styles.label,{color:colors.text}]}>Montant</Text><TextInput value={montant} onChangeText={setMontant} placeholder="Ex. 25 000" placeholderTextColor={colors.textMuted} keyboardType="number-pad" returnKeyType="next" style={[styles.input,{backgroundColor:colors.background,borderColor:colors.border,color:colors.text}]}/>
         <Text style={[styles.label,{color:colors.text}]}>Méthode de paiement</Text>
         {METHODES.map(item=>{const active=methode===item.value;return <TouchableOpacity key={item.value} onPress={()=>setMethode(item.value)} style={[styles.method,{backgroundColor:active?colors.primary+'14':colors.background,borderColor:active?colors.primary:colors.border}]}><MaterialCommunityIcons name={item.icon} size={22} color={active?colors.primary:colors.textMuted}/><Text style={[styles.methodText,{color:active?colors.primary:colors.text}]}>{item.label}</Text>{active&&<MaterialCommunityIcons name="check-circle" size={18} color={colors.primary}/>}</TouchableOpacity>})}
         <Text style={[styles.label,{color:colors.text}]}>Numéro de téléphone</Text><TextInput value={numero} onChangeText={setNumero} placeholder="Ex. 07 00 00 00 00" placeholderTextColor={colors.textMuted} keyboardType="phone-pad" returnKeyType="done" style={[styles.input,{backgroundColor:colors.background,borderColor:colors.border,color:colors.text}]}/>
@@ -74,4 +80,4 @@ export default function DemanderPaiementScreen() {
     </ScrollView>
   </KeyboardAvoidingView>;
 }
-const styles=StyleSheet.create({container:{flex:1},content:{padding:16,paddingBottom:40},center:{flex:1,alignItems:'center',justifyContent:'center'},header:{marginBottom:16},title:{fontSize:25,fontWeight:'900'},subtitle:{fontSize:12,marginTop:2},balance:{borderRadius:20,padding:22,marginBottom:14},balanceLabel:{color:'rgba(255,255,255,.82)',fontSize:13},balanceValue:{color:'white',fontSize:29,fontWeight:'900',marginTop:6},balanceHint:{color:'rgba(255,255,255,.82)',fontSize:11,marginTop:7},card:{borderWidth:1,borderRadius:18,padding:16,marginBottom:14},cardTitle:{fontSize:17,fontWeight:'800',marginBottom:12},label:{fontSize:13,fontWeight:'700',marginTop:8,marginBottom:7},input:{minHeight:48,borderWidth:1,borderRadius:12,paddingHorizontal:13,fontSize:16,marginBottom:9},method:{minHeight:52,borderWidth:1,borderRadius:12,paddingHorizontal:12,flexDirection:'row',alignItems:'center',gap:10,marginBottom:8},methodText:{flex:1,fontSize:14,fontWeight:'700'},submit:{minHeight:50,borderRadius:14,alignItems:'center',justifyContent:'center',flexDirection:'row',gap:8,marginTop:12},submitText:{color:'white',fontSize:15,fontWeight:'800'},history:{flexDirection:'row',alignItems:'center',paddingVertical:11,borderBottomWidth:1,borderBottomColor:'#00000010'},amount:{fontSize:14,fontWeight:'800'},meta:{fontSize:11,marginTop:3}});
+const styles=StyleSheet.create({container:{flex:1},content:{padding:16,paddingBottom:220},center:{flex:1,alignItems:'center',justifyContent:'center'},header:{marginBottom:16},title:{fontSize:25,fontWeight:'900'},subtitle:{fontSize:12,marginTop:2},balance:{borderRadius:20,padding:22,marginBottom:14},balanceLabel:{color:'rgba(255,255,255,.82)',fontSize:13},balanceValue:{color:'white',fontSize:29,fontWeight:'900',marginTop:6},balanceHint:{color:'rgba(255,255,255,.82)',fontSize:11,marginTop:7},card:{borderWidth:1,borderRadius:18,padding:16,marginBottom:14},cardTitle:{fontSize:17,fontWeight:'800',marginBottom:12},label:{fontSize:13,fontWeight:'700',marginTop:8,marginBottom:7},input:{minHeight:48,borderWidth:1,borderRadius:12,paddingHorizontal:13,fontSize:16,marginBottom:9},method:{minHeight:52,borderWidth:1,borderRadius:12,paddingHorizontal:12,flexDirection:'row',alignItems:'center',gap:10,marginBottom:8},methodText:{flex:1,fontSize:14,fontWeight:'700'},submit:{minHeight:50,borderRadius:14,alignItems:'center',justifyContent:'center',flexDirection:'row',gap:8,marginTop:12},submitText:{color:'white',fontSize:15,fontWeight:'800'},history:{flexDirection:'row',alignItems:'center',paddingVertical:11,borderBottomWidth:1,borderBottomColor:'#00000010'},amount:{fontSize:14,fontWeight:'800'},meta:{fontSize:11,marginTop:3}});
