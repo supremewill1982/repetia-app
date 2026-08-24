@@ -1,21 +1,26 @@
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
 import { db, storage } from './firebaseConfig';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 export const uploadProfileImage = async (userId: string, imageUri: string) => {
   try {
     const response = await fetch(imageUri);
+    if (!response.ok) throw new Error('Impossible de lire l’image sélectionnée');
     const blob = await response.blob();
     const storageRef = ref(storage, `profileImages/${userId}`);
-    await uploadBytes(storageRef, blob);
+    await uploadBytes(storageRef, blob, { contentType: blob.type || 'image/jpeg' });
     const downloadURL = await getDownloadURL(storageRef);
 
-    // Mettre à jour l'URL dans Firestore
-    await updateDoc(doc(db, 'users', userId), {
+    // Les profils sont stockés dans users et, pour les répétiteurs, dans tuteurs.
+    await setDoc(doc(db, 'users', userId), {
       profileImage: downloadURL,
-      profileImageUpdatedAt: new Date()
-    });
+      profileImageUpdatedAt: serverTimestamp(),
+    }, { merge: true });
+    await setDoc(doc(db, 'tuteurs', userId), {
+      profileImage: downloadURL,
+      avatar: downloadURL,
+    }, { merge: true });
 
     return downloadURL;
   } catch (error) {
@@ -27,7 +32,7 @@ export const uploadProfileImage = async (userId: string, imageUri: string) => {
 export const pickImage = async () => {
   const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (status !== 'granted') {
-    alert('Désolé, nous avons besoin des permissions pour accéder à vos images!');
+    alert('Autorisez l’accès à vos photos pour choisir une image de profil.');
     return null;
   }
 
@@ -38,8 +43,5 @@ export const pickImage = async () => {
     quality: 0.5,
   });
 
-  if (!result.canceled) {
-    return result.assets[0].uri;
-  }
-  return null;
+  return result.canceled ? null : result.assets[0]?.uri || null;
 };
