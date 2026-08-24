@@ -3,6 +3,9 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    function signedIn() { return request.auth != null; }
+    function isAdmin() { return signedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'; }
+
     match /users/{userId} {
       allow read: if request.auth != null
         && (request.auth.uid == userId || resource.data.parentId == request.auth.uid);
@@ -30,22 +33,32 @@ service cloud.firestore {
     }
 
     match /tuteurs/{tuteurId} {
-      // Tous les utilisateurs authentifiés peuvent consulter les profils.
       allow read: if request.auth != null;
-      // Un répétiteur crée uniquement son propre profil.
       allow create: if request.auth != null && request.auth.uid == tuteurId;
-      // Le répétiteur peut modifier son profil ; seul un admin peut changer le statut de certification.
       allow update: if request.auth != null && (
         request.auth.uid == tuteurId
         || (
-          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+          isAdmin()
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['statut', 'dateCertification'])
         )
       );
       allow delete: if request.auth != null && (
         request.auth.uid == tuteurId
-        || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+        || isAdmin()
       );
+    }
+
+    match /contributions/{contributionId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.auteur.userId == request.auth.uid;
+      allow update, delete: if signedIn() && (resource.data.auteur.userId == request.auth.uid || isAdmin());
+    }
+
+    match /demandes_paiement/{demandeId} {
+      allow read: if signedIn() && (resource.data.repetiteur_id == request.auth.uid || isAdmin());
+      allow create: if signedIn() && request.resource.data.repetiteur_id == request.auth.uid;
+      allow update: if isAdmin();
+      allow delete: if isAdmin() || (signedIn() && resource.data.repetiteur_id == request.auth.uid);
     }
 
     match /rankings/{weekKey}/scores/{userId} {

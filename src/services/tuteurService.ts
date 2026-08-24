@@ -14,72 +14,33 @@ const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 export type StatutTuteur = 'en_attente' | 'certifie' | 'suspendu';
 
 export interface Tuteur {
-  uid: string;
-  nom: string;
-  prenom: string;
-  bio: string;
-  email: string;
-  telephone: string;
-  whatsapp: string;
-  matieres: string[];
-  niveaux: string[];
-  diplome: string;
-  universite: string;
-  anneeExp: number;
-  prix30min: number;
-  prix60min: number;
-  prixMensuel: number;
-  statut: StatutTuteur;
-  noteGlobale: number;
-  nbAvis: number;
-  nbSessions: number;
-  revenuTotal: number;
-  revenuMois: number;
-  scoreTest: number;
-  disponible: boolean;
-  dateCreation: string;
-  avatar: string;
+  uid: string; nom: string; prenom: string; bio: string; email: string; telephone: string; whatsapp: string;
+  matieres: string[]; niveaux: string[]; diplome: string; universite: string; anneeExp: number;
+  prix30min: number; prix60min: number; prixMensuel: number; statut: StatutTuteur;
+  noteGlobale: number; nbAvis: number; nbSessions: number; revenuTotal: number; revenuMois: number;
+  scoreTest: number; disponible: boolean; dateCreation: string; avatar: string;
 }
 
 export interface Reservation {
-  id?: string;
-  eleveId: string;
-  elevePrénom: string;
-  tuteurId: string;
-  tuteurNom: string;
-  matiere: string;
-  dureeMin: number;
-  prix: number;
-  statut: 'en_attente' | 'confirmee' | 'terminee' | 'annulee';
-  date: string;
-  heure: string;
-  message: string;
-  dateCreation: string;
+  id?: string; eleveId: string; elevePrénom: string; tuteurId: string; tuteurNom: string; matiere: string;
+  dureeMin: number; prix: number; statut: 'en_attente' | 'confirmee' | 'terminee' | 'annulee';
+  date: string; heure: string; message: string; dateCreation: string;
 }
 
 export interface Avis {
-  id?: string;
-  eleveId: string;
-  elevePrénom: string;
-  tuteurId: string;
-  note: number;
-  commentaire: string;
-  matiere: string;
-  date: string;
+  id?: string; eleveId: string; elevePrénom: string; tuteurId: string; note: number;
+  commentaire: string; matiere: string; date: string;
 }
 
 export async function inscrireTuteur(data: Omit<Tuteur, 'uid'|'statut'|'noteGlobale'|'nbAvis'|'nbSessions'|'revenuTotal'|'revenuMois'|'scoreTest'>): Promise<void> {
   const user = auth.currentUser;
   if (!user) throw new Error('Non connecté');
   const tuteur: Tuteur = {
-    ...data, uid: user.uid, statut: 'en_attente', noteGlobale: 0,
-    nbAvis: 0, nbSessions: 0, revenuTotal: 0, revenuMois: 0,
-    scoreTest: 0, disponible: true,
+    ...data, uid: user.uid, statut: 'en_attente', noteGlobale: 0, nbAvis: 0, nbSessions: 0,
+    revenuTotal: 0, revenuMois: 0, scoreTest: 0, disponible: true,
   };
   await setDoc(doc(db, 'tuteurs', user.uid), { ...tuteur, dateCreation: serverTimestamp() });
-  await setDoc(doc(db, 'users', user.uid, 'roles', 'tuteur'), {
-    estTuteur: true, statut: 'en_attente', depuis: serverTimestamp(),
-  });
+  await setDoc(doc(db, 'users', user.uid, 'roles', 'tuteur'), { estTuteur: true, statut: 'en_attente', depuis: serverTimestamp() });
 }
 
 export async function getMonProfilTuteur(): Promise<Tuteur | null> {
@@ -87,7 +48,7 @@ export async function getMonProfilTuteur(): Promise<Tuteur | null> {
     const user = auth.currentUser;
     if (!user) return null;
     const snap = await getDoc(doc(db, 'tuteurs', user.uid));
-    return snap.exists() ? snap.data() as Tuteur : null;
+    return snap.exists() ? { ...snap.data(), uid: snap.id } as Tuteur : null;
   } catch { return null; }
 }
 
@@ -103,34 +64,27 @@ export async function basculerDisponibilite(disponible: boolean): Promise<void> 
   await setDoc(doc(db, 'tuteurs', user.uid), { disponible }, { merge: true });
 }
 
-// Certification IA conservée volontairement dormante. La certification active est manuelle par l'administration.
 export interface QuestionTest { texte: string; options: string[]; bonne: number; explication: string; }
-
 export async function genererTestValidation(matiere: string): Promise<QuestionTest[]> {
   const prompt = `Tu es un expert en ${matiere} niveau Terminale/Université. Génère 20 questions QCM difficiles pour valider un répétiteur. Réponds UNIQUEMENT en JSON.`;
   const response = await axios.post(API_URL, {
-    model: 'google/gemini-flash-1.5', messages: [{ role: 'user', content: prompt }],
-    max_tokens: 3000, temperature: 0.3,
+    model: 'google/gemini-flash-1.5', messages: [{ role: 'user', content: prompt }], max_tokens: 3000, temperature: 0.3,
   }, { headers: { Authorization: `Bearer ${getKey()}`, 'Content-Type': 'application/json' }, timeout: 45000 });
   const contenu = response.data.choices[0]?.message?.content || '';
   const cleaned = contenu.replace(/```json\s*/gi, '').replace(/```/g, '').trim();
   const match = cleaned.match(/\{[\s\S]*\}/);
   if (!match) throw new Error('Test non généré');
-  const parsed = JSON.parse(match[0]);
-  return parsed.questions || [];
+  return JSON.parse(match[0]).questions || [];
 }
 
-export async function sauvegarderScoreTest(_score: number, _matiere: string): Promise<boolean> {
-  return false;
-}
+export async function sauvegarderScoreTest(_score: number, _matiere: string): Promise<boolean> { return false; }
 
 const CACHE_TUTEURS = 'repetia_tuteurs_cache';
 
 // Tous les répétiteurs inscrits et non suspendus sont visibles. Le badge dépend uniquement du statut.
 export async function getTuteursDisponibles(matiere?: string): Promise<Tuteur[]> {
   try {
-    const q = query(collection(db, 'tuteurs'), limit(30));
-    const snap = await getDocs(q);
+    const snap = await getDocs(query(collection(db, 'tuteurs'), limit(50)));
     let tuteurs = snap.docs
       .map(d => ({ ...(d.data() as Record<string, unknown>), uid: d.id }) as Tuteur)
       .filter(t => t.statut !== 'suspendu');
@@ -168,9 +122,7 @@ export async function getMesReservationsTuteur(): Promise<Reservation[]> {
   } catch { return []; }
 }
 
-export async function confirmerReservation(id: string): Promise<void> {
-  await updateDoc(doc(db, 'reservations', id), { statut: 'confirmee' });
-}
+export async function confirmerReservation(id: string): Promise<void> { await updateDoc(doc(db, 'reservations', id), { statut: 'confirmee' }); }
 
 export async function terminerReservation(id: string, montant: number): Promise<void> {
   const snap = await getDoc(doc(db, 'reservations', id));
