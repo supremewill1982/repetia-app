@@ -145,7 +145,7 @@ const CACHE_TUTEURS = 'repetia_tuteurs_cache';
 // Les données users complètent tuteurs pour que les modifications de profil soient publiques immédiatement.
 export async function getTuteursDisponibles(matiere?: string): Promise<Tuteur[]> {
   try {
-    const snap = await getDocs(query(collection(db, 'tuteurs'), limit(30)));
+    const snap = await getDocs(collection(db, 'tuteurs'));
     const base = snap.docs
       .map(d => ({ ...(d.data() as Record<string, unknown>), uid: d.id }) as Tuteur)
       .filter(t => t.statut !== 'suspendu');
