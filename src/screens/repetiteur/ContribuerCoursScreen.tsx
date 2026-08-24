@@ -7,7 +7,7 @@ import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { extraireTexteCours } from '../../services/iaServiceOpenRouter';
 
 const MATIERES = ['Mathématiques','Physique-Chimie','Français','Anglais','Histoire-Géographie','SVT','Philosophie','Informatique'];
