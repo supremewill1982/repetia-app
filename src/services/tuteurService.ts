@@ -43,28 +43,52 @@ export interface Tuteur {
 }
 
 export interface Reservation {
-  id?: string; eleveId: string; elevePrénom: string; tuteurId: string;
-  tuteurNom: string; matiere: string; dureeMin: number; prix: number;
+  id?: string;
+  eleveId: string;
+  elevePrénom: string;
+  tuteurId: string;
+  tuteurNom: string;
+  matiere: string;
+  dureeMin: number;
+  prix: number;
   statut: 'en_attente' | 'confirmee' | 'terminee' | 'annulee';
-  date: string; heure: string; message: string; dateCreation: string;
+  date: string;
+  heure: string;
+  message: string;
+  dateCreation: string;
 }
 
 export interface Avis {
-  id?: string; eleveId: string; elevePrénom: string; tuteurId: string;
-  note: number; commentaire: string; matiere: string; date: string;
+  id?: string;
+  eleveId: string;
+  elevePrénom: string;
+  tuteurId: string;
+  note: number;
+  commentaire: string;
+  matiere: string;
+  date: string;
 }
 
 export async function inscrireTuteur(data: Omit<Tuteur, 'uid'|'statut'|'noteGlobale'|'nbAvis'|'nbSessions'|'revenuTotal'|'revenuMois'|'scoreTest'>): Promise<void> {
   const user = auth.currentUser;
   if (!user) throw new Error('Non connecté');
   const tuteur: Tuteur = {
-    ...data, uid: user.uid, statut: 'en_attente', noteGlobale: 0,
-    nbAvis: 0, nbSessions: 0, revenuTotal: 0, revenuMois: 0,
-    scoreTest: 0, disponible: true,
+    ...data,
+    uid: user.uid,
+    statut: 'en_attente',
+    noteGlobale: 0,
+    nbAvis: 0,
+    nbSessions: 0,
+    revenuTotal: 0,
+    revenuMois: 0,
+    scoreTest: 0,
+    disponible: true,
   };
   await setDoc(doc(db, 'tuteurs', user.uid), { ...tuteur, dateCreation: serverTimestamp() });
   await setDoc(doc(db, 'users', user.uid, 'roles', 'tuteur'), {
-    estTuteur: true, statut: 'en_attente', depuis: serverTimestamp(),
+    estTuteur: true,
+    statut: 'en_attente',
+    depuis: serverTimestamp(),
   });
 }
 
@@ -89,27 +113,36 @@ export async function basculerDisponibilite(disponible: boolean): Promise<void> 
   await setDoc(doc(db, 'tuteurs', user.uid), { disponible }, { merge: true });
 }
 
+// Certification automatique volontairement inactive : validation manuelle par l'administration.
 export interface QuestionTest { texte: string; options: string[]; bonne: number; explication: string; }
+
 export async function genererTestValidation(matiere: string): Promise<QuestionTest[]> {
   const prompt = `Tu es un expert en ${matiere} niveau Terminale/Université. Génère 20 questions QCM difficiles pour valider un répétiteur. Réponds UNIQUEMENT en JSON.`;
   const response = await axios.post(API_URL, {
-    model: 'google/gemini-flash-1.5', messages: [{ role: 'user', content: prompt }], max_tokens: 3000, temperature: 0.3,
-  }, { headers: { Authorization: `Bearer ${getKey()}`, 'Content-Type': 'application/json' }, timeout: 45000 });
+    model: 'google/gemini-flash-1.5',
+    messages: [{ role: 'user', content: prompt }],
+    max_tokens: 3000,
+    temperature: 0.3,
+  }, {
+    headers: { Authorization: `Bearer ${getKey()}`, 'Content-Type': 'application/json' },
+    timeout: 45000,
+  });
   const contenu = response.data.choices[0]?.message?.content || '';
   const cleaned = contenu.replace(/```json\s*/gi, '').replace(/```/g, '').trim();
   const match = cleaned.match(/\{[\s\S]*\}/);
   if (!match) throw new Error('Test non généré');
-  return JSON.parse(match[0]).questions || [];
+  const parsed = JSON.parse(match[0]);
+  return parsed.questions || [];
 }
 
-// Certification automatique volontairement inactive : validation manuelle par l'administration.
-export async function sauvegarderScoreTest(_score: number, _matiere: string): Promise<boolean> { return false; }
+export async function sauvegarderScoreTest(_score: number, _matiere: string): Promise<boolean> {
+  return false;
+}
 
 const CACHE_TUTEURS = 'repetia_tuteurs_cache';
 
 // Tous les répétiteurs inscrits et non suspendus sont visibles.
-// On fusionne aussi le profil users : cela évite qu'un profil enregistré dans users reste invisible
-// dans la fiche publique lorsque l'ancien document tuteurs contient des champs incomplets.
+// Les données users complètent tuteurs pour que les modifications de profil soient publiques immédiatement.
 export async function getTuteursDisponibles(matiere?: string): Promise<Tuteur[]> {
   try {
     const snap = await getDocs(query(collection(db, 'tuteurs'), limit(30)));
@@ -117,7 +150,7 @@ export async function getTuteursDisponibles(matiere?: string): Promise<Tuteur[]>
       .map(d => ({ ...(d.data() as Record<string, unknown>), uid: d.id }) as Tuteur)
       .filter(t => t.statut !== 'suspendu');
 
-    const tuteurs = await Promise.all(base.map(async tuteur => {
+    const tuteurs = await Promise.all(base.map(async (tuteur) => {
       try {
         const userSnap = await getDoc(doc(db, 'users', tuteur.uid));
         if (!userSnap.exists()) return tuteur;
@@ -131,8 +164,10 @@ export async function getTuteursDisponibles(matiere?: string): Promise<Tuteur[]>
           bio: (user.bio as string) || tuteur.bio || '',
           profileImage: (user.profileImage as string) || tuteur.profileImage,
           avatar: (user.profileImage as string) || tuteur.avatar || '',
-        };
-      } catch { return tuteur; }
+        } as Tuteur;
+      } catch {
+        return tuteur;
+      }
     }));
 
     const filtered = matiere
@@ -163,12 +198,16 @@ export async function getTuteur(uid: string): Promise<Tuteur | null> {
       bio: (user.bio as string) || tuteur.bio || '',
       profileImage: (user.profileImage as string) || tuteur.profileImage,
       avatar: (user.profileImage as string) || tuteur.avatar || '',
-    };
+    } as Tuteur;
   } catch { return null; }
 }
 
 export async function creerReservation(res: Omit<Reservation, 'id'|'statut'|'dateCreation'>): Promise<string> {
-  const ref = await addDoc(collection(db, 'reservations'), { ...res, statut: 'en_attente', dateCreation: serverTimestamp() });
+  const ref = await addDoc(collection(db, 'reservations'), {
+    ...res,
+    statut: 'en_attente',
+    dateCreation: serverTimestamp(),
+  });
   return ref.id;
 }
 
@@ -181,7 +220,9 @@ export async function getMesReservationsTuteur(): Promise<Reservation[]> {
   } catch { return []; }
 }
 
-export async function confirmerReservation(id: string): Promise<void> { await updateDoc(doc(db, 'reservations', id), { statut: 'confirmee' }); }
+export async function confirmerReservation(id: string): Promise<void> {
+  await updateDoc(doc(db, 'reservations', id), { statut: 'confirmee' });
+}
 
 export async function terminerReservation(id: string, montant: number): Promise<void> {
   const snap = await getDoc(doc(db, 'reservations', id));
@@ -190,7 +231,10 @@ export async function terminerReservation(id: string, montant: number): Promise<
   await updateDoc(doc(db, 'reservations', id), { statut: 'terminee' });
   const gainTuteur = montant - Math.round(montant * 0.30);
   await setDoc(doc(db, 'tuteurs', res.tuteurId), {
-    nbSessions: increment(1), revenuTotal: increment(gainTuteur), revenuMois: increment(gainTuteur), solde: increment(gainTuteur),
+    nbSessions: increment(1),
+    revenuTotal: increment(gainTuteur),
+    revenuMois: increment(gainTuteur),
+    solde: increment(gainTuteur),
   }, { merge: true });
 }
 
@@ -199,7 +243,10 @@ export async function laisserAvis(avis: Omit<Avis, 'id'|'date'>): Promise<void> 
   const snap = await getDocs(query(collection(db, 'avis'), where('tuteurId', '==', avis.tuteurId)));
   const notes = snap.docs.map(d => d.data().note as number);
   const moyenne = notes.reduce((a, b) => a + b, 0) / notes.length;
-  await setDoc(doc(db, 'tuteurs', avis.tuteurId), { noteGlobale: Math.round(moyenne * 10) / 10, nbAvis: notes.length }, { merge: true });
+  await setDoc(doc(db, 'tuteurs', avis.tuteurId), {
+    noteGlobale: Math.round(moyenne * 10) / 10,
+    nbAvis: notes.length,
+  }, { merge: true });
 }
 
 export async function getAvisTuteur(tuteurId: string): Promise<Avis[]> {
