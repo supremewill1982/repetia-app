@@ -1,6 +1,6 @@
 import { ref, uploadString, getDownloadURL } from 'firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { db, storage } from './firebaseConfig';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 
@@ -8,7 +8,8 @@ export const uploadProfileImage = async (userId: string, imageUri: string) => {
   try {
     if (!userId || !imageUri) throw new Error('Image ou utilisateur invalide');
 
-    // Évite le chemin Blob/fetch qui est fragile selon les versions React Native/Firebase.
+    // Expo SDK 54 : utiliser l'API legacy explicitement pour la lecture base64,
+    // compatible avec les URI locales retournées par ImagePicker.
     const base64 = await FileSystem.readAsStringAsync(imageUri, {
       encoding: FileSystem.EncodingType.Base64,
     });
@@ -19,13 +20,16 @@ export const uploadProfileImage = async (userId: string, imageUri: string) => {
       contentType: 'image/jpeg',
       cacheControl: 'public,max-age=3600',
     });
+
     const downloadURL = `${await getDownloadURL(storageRef)}&v=${Date.now()}`;
 
+    // Source commune pour tous les rôles.
     await setDoc(doc(db, 'users', userId), {
       profileImage: downloadURL,
       profileImageUpdatedAt: serverTimestamp(),
     }, { merge: true });
 
+    // Le catalogue des répétiteurs lit aussi cette donnée depuis tuteurs.
     const tuteurRef = doc(db, 'tuteurs', userId);
     const tuteurSnap = await getDoc(tuteurRef);
     if (tuteurSnap.exists()) {
