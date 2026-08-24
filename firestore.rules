@@ -21,9 +21,12 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
       match /{subcollection}/{docId} { allow read, write: if request.auth != null && request.auth.uid == userId; }
     }
+
     match /tuteurs/{tuteurId} {
       allow read: if request.auth != null;
-      allow create: if request.auth != null && request.auth.uid == tuteurId && request.resource.data.statut == 'en_attente';
+      allow create: if request.auth != null
+        && request.auth.uid == tuteurId
+        && request.resource.data.statut == 'en_attente';
       allow update: if request.auth != null && (
         (
           request.auth.uid == tuteurId
@@ -32,18 +35,35 @@ service cloud.firestore {
         || (
           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['statut', 'dateCertification'])
+          && request.resource.data.statut in ['en_attente', 'certifie', 'suspendu']
         )
       );
-      allow delete: if request.auth != null && (request.auth.uid == tuteurId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+      allow delete: if request.auth != null
+        && (request.auth.uid == tuteurId
+          || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
     }
+
     match /contributions/{contributionId} {
       allow read: if request.auth != null;
-      allow create: if request.auth != null && request.resource.data.auteur.userId == request.auth.uid && request.resource.data.statut == 'en_attente';
-      allow update, delete: if request.auth != null && (
-        (resource.data.auteur.userId == request.auth.uid && request.resource.data.statut == resource.data.statut)
+      allow create: if request.auth != null
+        && request.resource.data.auteur.userId == request.auth.uid
+        && request.resource.data.statut == 'en_attente';
+      allow update: if request.auth != null && (
+        (
+          resource.data.auteur.userId == request.auth.uid
+          && request.resource.data.statut == resource.data.statut
+        )
+        || (
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+          && request.resource.data.statut in ['en_attente', 'valide', 'rejete']
+        )
+      );
+      allow delete: if request.auth != null && (
+        resource.data.auteur.userId == request.auth.uid
         || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
       );
     }
+
     match /demandes_paiement/{paiementId} {
       allow read: if request.auth != null && (resource.data.repetiteur_id == request.auth.uid || resource.data.user_id == request.auth.uid || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
       allow create: if request.auth != null && (request.resource.data.repetiteur_id == request.auth.uid || request.resource.data.user_id == request.auth.uid);
