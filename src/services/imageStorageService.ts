@@ -1,23 +1,31 @@
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadString, getDownloadURL } from 'firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
 import { db, storage } from './firebaseConfig';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 export const uploadProfileImage = async (userId: string, imageUri: string) => {
   try {
-    const response = await fetch(imageUri);
-    if (!response.ok) throw new Error('Impossible de lire l’image sélectionnée');
-    const blob = await response.blob();
+    if (!userId || !imageUri) throw new Error('Image ou utilisateur invalide');
+
+    // Évite le chemin Blob/fetch qui est fragile selon les versions React Native/Firebase.
+    const base64 = await FileSystem.readAsStringAsync(imageUri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    if (!base64) throw new Error('Image vide');
+
     const storageRef = ref(storage, `profileImages/${userId}`);
-    await uploadBytes(storageRef, blob, { contentType: blob.type || 'image/jpeg' });
-    const downloadURL = await getDownloadURL(storageRef);
+    await uploadString(storageRef, base64, 'base64', {
+      contentType: 'image/jpeg',
+      cacheControl: 'public,max-age=3600',
+    });
+    const downloadURL = `${await getDownloadURL(storageRef)}&v=${Date.now()}`;
 
     await setDoc(doc(db, 'users', userId), {
       profileImage: downloadURL,
       profileImageUpdatedAt: serverTimestamp(),
     }, { merge: true });
 
-    // Ne crée jamais un faux profil tuteur pour un élève/parent.
     const tuteurRef = doc(db, 'tuteurs', userId);
     const tuteurSnap = await getDoc(tuteurRef);
     if (tuteurSnap.exists()) {
