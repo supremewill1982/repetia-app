@@ -2,33 +2,45 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isAdmin() { return signedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'; }
+
     match /users/{userId} {
-      allow read: if request.auth != null && (request.auth.uid == userId || resource.data.parentId == request.auth.uid);
-      allow write: if request.auth != null && (request.auth.uid == userId || (resource.data.parentId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['parentId', 'parentPrenom'])));
-      match /{subcollection}/{docId} { allow read, write: if request.auth != null && request.auth.uid == userId; }
+      allow read: if signedIn() && (request.auth.uid == userId || resource.data.parentId == request.auth.uid);
+      allow write: if signedIn() && (request.auth.uid == userId || (resource.data.parentId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['parentId', 'parentPrenom'])));
+      match /{subcollection}/{docId} { allow read, write: if signedIn() && request.auth.uid == userId; }
     }
-    match /enfants/{userId} { allow read, write: if request.auth != null && request.auth.uid == userId; match /{subcollection}/{docId} { allow read, write: if request.auth != null && request.auth.uid == userId; } }
-    match /parents/{userId} { allow read, write: if request.auth != null && request.auth.uid == userId; match /{subcollection}/{docId} { allow read, write: if request.auth != null && request.auth.uid == userId; } }
+    match /enfants/{userId} { allow read, write: if signedIn() && request.auth.uid == userId; match /{subcollection}/{docId} { allow read, write: if signedIn() && request.auth.uid == userId; } }
+    match /parents/{userId} { allow read, write: if signedIn() && request.auth.uid == userId; match /{subcollection}/{docId} { allow read, write: if signedIn() && request.auth.uid == userId; } }
+
     match /tuteurs/{tuteurId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null && request.auth.uid == tuteurId && request.resource.data.statut == 'en_attente';
-      allow update: if request.auth != null && ((request.auth.uid == tuteurId && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['statut', 'dateCertification'])) || (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['statut', 'dateCertification']) && request.resource.data.statut in ['en_attente', 'certifie', 'suspendu']));
-      allow delete: if request.auth != null && (request.auth.uid == tuteurId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+      allow read: if signedIn();
+      allow create: if signedIn() && request.auth.uid == tuteurId && request.resource.data.statut == 'en_attente';
+      allow update: if signedIn() && ((request.auth.uid == tuteurId && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['statut', 'dateCertification'])) || (isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['statut', 'dateCertification']) && request.resource.data.statut in ['en_attente', 'certifie', 'suspendu']));
+      allow delete: if signedIn() && (request.auth.uid == tuteurId || isAdmin());
     }
+
     match /contributions/{contributionId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null && request.resource.data.auteur.userId == request.auth.uid && request.resource.data.statut == 'en_attente';
-      allow update: if request.auth != null && ((resource.data.auteur.userId == request.auth.uid && request.resource.data.statut == resource.data.statut) || (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' && request.resource.data.statut in ['en_attente', 'validé', 'rejeté']));
-      allow delete: if request.auth != null && (resource.data.auteur.userId == request.auth.uid || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.auteur.userId == request.auth.uid && request.resource.data.statut == 'en_attente';
+      allow update: if signedIn() && ((resource.data.auteur.userId == request.auth.uid && request.resource.data.statut == resource.data.statut) || (isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['statut', 'date_validation', 'modérateur_id', 'commentaire_modération', 'score_ia']) && request.resource.data.statut in ['en_attente', 'en_modération', 'validé', 'rejeté', 'modification_demandée', 'désactivé']));
+      allow delete: if signedIn() && (resource.data.auteur.userId == request.auth.uid || isAdmin());
     }
-    match /demandes_paiement/{paiementId} { allow read: if request.auth != null && (resource.data.repetiteur_id == request.auth.uid || resource.data.user_id == request.auth.uid || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'); allow create: if request.auth != null && (request.resource.data.repetiteur_id == request.auth.uid || request.resource.data.user_id == request.auth.uid); allow update: if request.auth != null && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' || resource.data.repetiteur_id == request.auth.uid || resource.data.user_id == request.auth.uid); }
-    match /rankings/{weekKey}/scores/{userId} { allow read: if request.auth != null; allow write: if request.auth != null && request.auth.uid == userId; }
-    match /sessions/{sessionId} { allow read: if request.auth != null && (resource.data.enfantId == request.auth.uid || (resource.data.enfantId != null && get(/databases/$(database)/documents/users/$(resource.data.enfantId)).data.parentId == request.auth.uid)); allow create: if request.auth != null && request.resource.data.enfantId == request.auth.uid; allow update: if request.auth != null && resource.data.enfantId == request.auth.uid && request.resource.data.enfantId == request.auth.uid; allow delete: if request.auth != null && resource.data.enfantId == request.auth.uid; }
-    match /codesLiaison/{code} { allow read: if request.auth != null; allow create: if request.auth != null && request.resource.data.enfantId == request.auth.uid; allow update: if request.auth != null && resource.data.enfantId == request.auth.uid && request.resource.data.enfantId == request.auth.uid; allow delete: if request.auth != null && (resource.data.enfantId == request.auth.uid || get(/databases/$(database)/documents/users/$(resource.data.enfantId)).data.parentId == request.auth.uid); }
-    match /badges/{userId} { allow read, write: if request.auth != null && request.auth.uid == userId; }
-    match /timeStats/{userId} { allow read, write: if request.auth != null && request.auth.uid == userId; }
-    match /podcasts_public/{podcastId} { allow read: if request.auth != null; allow create: if request.auth != null; allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId; }
-    match /likes/{likeId} { allow read: if request.auth != null; allow create: if request.auth != null; allow delete: if request.auth != null && request.auth.uid == resource.data.userId; }
-    match /reservations/{reservationId} { allow read: if request.auth != null && (resource.data.eleveId == request.auth.uid || resource.data.tuteurId == request.auth.uid); allow create: if request.auth != null && request.resource.data.eleveId == request.auth.uid; allow update: if request.auth != null && ((resource.data.eleveId == request.auth.uid && request.resource.data.eleveId == resource.data.eleveId && request.resource.data.tuteurId == resource.data.tuteurId) || (resource.data.tuteurId == request.auth.uid && request.resource.data.eleveId == resource.data.eleveId && request.resource.data.tuteurId == resource.data.tuteurId)); allow delete: if request.auth != null && resource.data.eleveId == request.auth.uid; }
+
+    match /demandes_paiement/{demandeId} {
+      allow read: if signedIn() && (resource.data.repetiteur_id == request.auth.uid || isAdmin());
+      allow create: if signedIn() && request.resource.data.repetiteur_id == request.auth.uid && request.resource.data.methode in ['moov_money', 'airtel_money'];
+      allow update: if isAdmin();
+      allow delete: if isAdmin() || (signedIn() && resource.data.repetiteur_id == request.auth.uid);
+    }
+
+    match /rankings/{weekKey}/scores/{userId} { allow read: if signedIn(); allow write: if signedIn() && request.auth.uid == userId; }
+    match /sessions/{sessionId} { allow read: if signedIn() && (resource.data.enfantId == request.auth.uid || (resource.data.enfantId != null && get(/databases/$(database)/documents/users/$(resource.data.enfantId)).data.parentId == request.auth.uid)); allow create: if signedIn() && request.resource.data.enfantId == request.auth.uid; allow update: if signedIn() && resource.data.enfantId == request.auth.uid && request.resource.data.enfantId == request.auth.uid; allow delete: if signedIn() && resource.data.enfantId == request.auth.uid; }
+    match /codesLiaison/{code} { allow read: if signedIn(); allow create: if signedIn() && request.resource.data.enfantId == request.auth.uid; allow update: if signedIn() && resource.data.enfantId == request.auth.uid && request.resource.data.enfantId == request.auth.uid; allow delete: if signedIn() && (resource.data.enfantId == request.auth.uid || get(/databases/$(database)/documents/users/$(resource.data.enfantId)).data.parentId == request.auth.uid); }
+    match /badges/{userId} { allow read, write: if signedIn() && request.auth.uid == userId; }
+    match /timeStats/{userId} { allow read, write: if signedIn() && request.auth.uid == userId; }
+    match /podcasts_public/{podcastId} { allow read: if signedIn(); allow create: if signedIn(); allow update, delete: if signedIn() && request.auth.uid == resource.data.userId; }
+    match /likes/{likeId} { allow read: if signedIn(); allow create: if signedIn(); allow delete: if signedIn() && request.auth.uid == resource.data.userId; }
+    match /reservations/{reservationId} { allow read: if signedIn() && (resource.data.eleveId == request.auth.uid || resource.data.tuteurId == request.auth.uid); allow create: if signedIn() && request.resource.data.eleveId == request.auth.uid; allow update: if signedIn() && ((resource.data.eleveId == request.auth.uid && request.resource.data.eleveId == resource.data.eleveId && request.resource.data.tuteurId == resource.data.tuteurId) || (resource.data.tuteurId == request.auth.uid && request.resource.data.eleveId == resource.data.eleveId && request.resource.data.tuteurId == resource.data.tuteurId)); allow delete: if signedIn() && resource.data.eleveId == request.auth.uid; }
   }
 }
