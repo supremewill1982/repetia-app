@@ -2,8 +2,8 @@ import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
-
 import ProfilRepetiteurScreen from '../screens/repetiteur/ProfilRepetiteurScreen';
 import ContribuerCoursScreen from '../screens/repetiteur/ContribuerCoursScreen';
 import MesCoursScreen from '../screens/repetiteur/MesCoursScreen';
@@ -15,73 +15,10 @@ import ContributionDetailsScreen from '../screens/repetiteur/ContributionDetails
 import DemanderPaiementScreen from '../screens/repetiteur/DemanderPaiementScreen';
 import RatingsListScreen from '../screens/repetiteur/RatingsListScreen';
 import MesReservationsTuteurScreen from '../screens/repetiteur/MesReservationsTuteurScreen';
-
-const Stack = createStackNavigator();
-
-function RepetiteurStackNavigator() {
-  const { colors } = useTheme();
-  return (
-    <Stack.Navigator initialRouteName="ProfilRepetiteur" screenOptions={{
-      headerStyle: { backgroundColor: colors.surface, elevation: 0, shadowOpacity: 0 },
-      headerTintColor: colors.text,
-      headerTitleStyle: { fontWeight: 'bold', color: colors.text },
-    }}>
-      <Stack.Screen name="ProfilRepetiteur" component={ProfilRepetiteurScreen} options={{ title: 'Mon Profil' }} />
-      <Stack.Screen name="RatingsList" component={RatingsListScreen} options={{ title: 'Mes Avis' }} />
-      <Stack.Screen name="ContribuerCours" component={ContribuerCoursScreen} options={{ title: 'Contribuer un cours' }} />
-      <Stack.Screen name="MesCours" component={MesCoursScreen} options={{ title: 'Mes Contributions' }} />
-      <Stack.Screen name="Certification" component={CertificationScreen} options={{ title: 'Certification' }} />
-      <Stack.Screen name="TestCertification" component={TestCertificationScreen} options={{ title: 'Test de certification' }} />
-      <Stack.Screen name="Reclamation" component={ReclamationScreen} options={{ title: 'Réclamation' }} />
-      <Stack.Screen name="EditContribution" component={EditContributionScreen} options={{ title: 'Modifier la Contribution' }} />
-      <Stack.Screen name="ContributionDetails" component={ContributionDetailsScreen} options={{ title: 'Détails du Cours' }} />
-      <Stack.Screen name="DemanderPaiement" component={DemanderPaiementScreen} options={{ title: 'Demander un paiement' }} />
-      <Stack.Screen name="MesReservationsTuteur" component={MesReservationsTuteurScreen} options={{ title: 'Mes Réservations' }} />
-    </Stack.Navigator>
-  );
-}
-
-const Tab = createBottomTabNavigator();
-
-function RepetiteurNavigator() {
-  const { colors } = useTheme();
-  return (
-    <Tab.Navigator initialRouteName="Profil" screenOptions={{
-      tabBarActiveTintColor: colors.primary,
-      tabBarInactiveTintColor: colors.textMuted,
-      tabBarStyle: {
-        backgroundColor: colors.surface,
-        borderTopWidth: 0,
-        elevation: 10,
-        height: 60,
-        paddingBottom: 8,
-        paddingTop: 8,
-      },
-      tabBarLabelStyle: { fontSize: 12, marginBottom: 4 },
-      headerShown: false,
-    }}>
-      <Tab.Screen name="Profil" component={RepetiteurStackNavigator} options={{
-        tabBarLabel: 'Profil',
-        tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="account" size={size} color={color} />,
-      }} />
-      <Tab.Screen name="Contribuer" component={ContribuerCoursScreen} options={{
-        tabBarLabel: 'Contribuer',
-        tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="file-document-edit" size={size} color={color} />,
-      }} />
-      <Tab.Screen name="MesCours" component={MesCoursScreen} options={{
-        tabBarLabel: 'Mes Cours',
-        tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="file-document-multiple" size={size} color={color} />,
-      }} />
-      <Tab.Screen name="Paiement" component={DemanderPaiementScreen} options={{
-        tabBarLabel: 'Paiement',
-        tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="bank-transfer" size={size} color={color} />,
-      }} />
-      <Tab.Screen name="Reservations" component={MesReservationsTuteurScreen} options={{
-        tabBarLabel: 'Réservations',
-        tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="calendar-clock" size={size} color={color} />,
-      }} />
-    </Tab.Navigator>
-  );
-}
-
-export default RepetiteurNavigator;
+const Stack=createStackNavigator(); const Tab=createBottomTabNavigator();
+function StackNav(){const{colors}=useTheme();return <Stack.Navigator initialRouteName="ProfilRepetiteur" screenOptions={{headerStyle:{backgroundColor:colors.surface,elevation:0,shadowOpacity:0},headerTintColor:colors.text,headerTitleStyle:{fontWeight:'700',color:colors.text}}}>
+<Stack.Screen name="ProfilRepetiteur" component={ProfilRepetiteurScreen} options={{title:'Mon Profil'}}/><Stack.Screen name="RatingsList" component={RatingsListScreen} options={{title:'Mes Avis'}}/><Stack.Screen name="ContribuerCours" component={ContribuerCoursScreen} options={{title:'Contribuer un cours'}}/><Stack.Screen name="MesCours" component={MesCoursScreen} options={{title:'Mes Contributions'}}/><Stack.Screen name="Certification" component={CertificationScreen} options={{title:'Certification'}}/><Stack.Screen name="TestCertification" component={TestCertificationScreen} options={{title:'Test de certification'}}/><Stack.Screen name="Reclamation" component={ReclamationScreen} options={{title:'Réclamation'}}/><Stack.Screen name="EditContribution" component={EditContributionScreen} options={{title:'Modifier la contribution'}}/><Stack.Screen name="ContributionDetails" component={ContributionDetailsScreen} options={{title:'Détails du cours'}}/><Stack.Screen name="DemanderPaiement" component={DemanderPaiementScreen} options={{title:'Paiement'}}/><Stack.Screen name="MesReservationsTuteur" component={MesReservationsTuteurScreen} options={{title:'Mes réservations'}}/>
+</Stack.Navigator>}
+export default function RepetiteurNavigator(){const{colors}=useTheme();const insets=useSafeAreaInsets();const bottom=Math.max(insets.bottom,6);return <Tab.Navigator initialRouteName="Profil" screenOptions={{headerShown:false,tabBarActiveTintColor:colors.primary,tabBarInactiveTintColor:colors.textMuted,tabBarHideOnKeyboard:true,tabBarStyle:{backgroundColor:colors.surface,borderTopColor:colors.border,borderTopWidth:1,height:56+bottom,paddingBottom:bottom,paddingTop:5},tabBarLabelStyle:{fontSize:10,fontWeight:'700'}}}>
+<Tab.Screen name="Profil" component={StackNav} options={{tabBarLabel:'Profil',tabBarIcon:({color,size})=><MaterialCommunityIcons name="account" size={size} color={color}/>}}/><Tab.Screen name="Contribuer" component={ContribuerCoursScreen} options={{tabBarLabel:'Contribuer',tabBarIcon:({color,size})=><MaterialCommunityIcons name="file-document-edit" size={size} color={color}/>}}/><Tab.Screen name="MesCours" component={MesCoursScreen} options={{tabBarLabel:'Mes cours',tabBarIcon:({color,size})=><MaterialCommunityIcons name="file-document-multiple" size={size} color={color}/>}}/><Tab.Screen name="Paiement" component={DemanderPaiementScreen} options={{tabBarLabel:'Paiement',tabBarIcon:({color,size})=><MaterialCommunityIcons name="bank-transfer" size={size} color={color}/>}}/><Tab.Screen name="Reservations" component={MesReservationsTuteurScreen} options={{tabBarLabel:'Réservations',tabBarIcon:({color,size})=><MaterialCommunityIcons name="calendar-clock" size={size} color={color}/>}}/>
+</Tab.Navigator>}
