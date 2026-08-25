@@ -24,10 +24,7 @@ export default function ParentParametres({ navigation }: any) {
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <View style={styles.headerRow}>
-        <View>
-          <Text style={[styles.kicker, { color: colors.textMuted }]}>MON ESPACE</Text>
-          <Text style={[styles.title, { color: colors.text }]}>Mon profil</Text>
-        </View>
+        <View><Text style={[styles.kicker, { color: colors.textMuted }]}>MON ESPACE</Text><Text style={[styles.title, { color: colors.text }]}>Mon profil</Text></View>
         <View style={[styles.avatarSmall, { backgroundColor: colors.primary + '18' }]}><MaterialCommunityIcons name="account-heart-outline" size={22} color={colors.primary} /></View>
       </View>
 
@@ -46,7 +43,7 @@ export default function ParentParametres({ navigation }: any) {
           <MaterialCommunityIcons name="account-child-outline" size={30} color={colors.primary} />
           <View style={{ flex: 1 }}><Text style={[styles.itemTitle, { color: colors.text }]}>Aucun enfant lié</Text><Text style={[styles.itemSub, { color: colors.textMuted }]}>Ajoutez un enfant pour personnaliser son suivi.</Text></View>
         </View>
-      ) : enfants.map((e) => (
+      ) : enfants.map(e => (
         <TouchableOpacity key={e.uid} style={[styles.childCard, { backgroundColor: colors.surface, borderColor: colors.border }]} onPress={() => navigation.navigate('Suivi')}>
           <View style={[styles.childAvatar, { backgroundColor: colors.primary + '14' }]}><MaterialCommunityIcons name="account-child" size={24} color={colors.primary} /></View>
           <View style={{ flex: 1 }}><Text style={[styles.itemTitle, { color: colors.text }]}>{e.prenom}</Text><Text style={[styles.itemSub, { color: colors.textMuted }]}>{e.classe || 'Classe non renseignée'} {e.serie ? `· Série ${e.serie}` : ''}</Text></View>
@@ -67,10 +64,10 @@ export default function ParentParametres({ navigation }: any) {
 
       <Section title="Mon compte" colors={colors} />
       <View style={[styles.menu, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <MenuRow icon="account-edit-outline" label="Informations personnelles" onPress={() => {}} colors={colors} />
-        <MenuRow icon="bell-outline" label="Notifications" onPress={() => {}} colors={colors} />
-        <MenuRow icon="shield-lock-outline" label="Sécurité" onPress={() => {}} colors={colors} />
-        <MenuRow icon="help-circle-outline" label="Aide et support" onPress={() => {}} colors={colors} last />
+        <InfoRow icon="account-outline" label="Informations personnelles" value={nom} colors={colors} />
+        <InfoRow icon="bell-outline" label="Notifications" value="Configurées" colors={colors} />
+        <InfoRow icon="shield-lock-outline" label="Sécurité" value="Compte protégé" colors={colors} />
+        <InfoRow icon="help-circle-outline" label="Aide et support" value="Disponible" colors={colors} last />
       </View>
 
       <TouchableOpacity style={[styles.reportButton, { borderColor: colors.border, backgroundColor: colors.surface }]} onPress={() => navigation.navigate('Suivi')}>
@@ -81,24 +78,20 @@ export default function ParentParametres({ navigation }: any) {
 }
 
 function Section({ title, colors }: any) { return <Text style={[styles.section, { color: colors.text }]}>{title}</Text>; }
-function MenuRow({ icon, label, onPress, colors, last }: any) {
-  return <TouchableOpacity onPress={onPress} style={[styles.menuRow, !last && { borderBottomWidth: 1, borderBottomColor: colors.border }]}><MaterialCommunityIcons name={icon} size={21} color={colors.primary} /><Text style={[styles.menuLabel, { color: colors.text }]}>{label}</Text><MaterialCommunityIcons name="chevron-right" size={19} color={colors.textMuted} /></TouchableOpacity>;
+function InfoRow({ icon, label, value, colors, last }: any) {
+  return <View style={[styles.menuRow, !last && { borderBottomWidth: 1, borderBottomColor: colors.border }]}><MaterialCommunityIcons name={icon} size={21} color={colors.primary} /><View style={{ flex: 1 }}><Text style={[styles.menuLabel, { color: colors.text }]}>{label}</Text><Text style={[styles.itemSub, { color: colors.textMuted }]}>{value}</Text></View></View>;
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 }, content: { padding: 18, paddingBottom: 34 },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  kicker: { fontSize: 10, fontWeight: '800', letterSpacing: 1.2 }, title: { fontSize: 25, fontWeight: '900', marginTop: 3 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }, kicker: { fontSize: 10, fontWeight: '800', letterSpacing: 1.2 }, title: { fontSize: 25, fontWeight: '900', marginTop: 3 },
   avatarSmall: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
-  identity: { borderWidth: 1, borderRadius: 22, padding: 17, flexDirection: 'row', alignItems: 'center', gap: 13, marginBottom: 20 },
-  avatar: { width: 62, height: 62, borderRadius: 31, justifyContent: 'center', alignItems: 'center' }, avatarLetter: { fontSize: 25, fontWeight: '900' },
+  identity: { borderWidth: 1, borderRadius: 22, padding: 17, flexDirection: 'row', alignItems: 'center', gap: 13, marginBottom: 20 }, avatar: { width: 62, height: 62, borderRadius: 31, justifyContent: 'center', alignItems: 'center' }, avatarLetter: { fontSize: 25, fontWeight: '900' },
   name: { fontSize: 19, fontWeight: '900' }, email: { fontSize: 11, marginTop: 3 }, roleRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 7 }, role: { fontSize: 10, fontWeight: '800' },
-  section: { fontSize: 16, fontWeight: '900', marginBottom: 9, marginTop: 2 },
-  childCard: { borderWidth: 1, borderRadius: 18, padding: 13, flexDirection: 'row', alignItems: 'center', gap: 11, marginBottom: 8 }, childAvatar: { width: 45, height: 45, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
-  itemTitle: { fontSize: 13, fontWeight: '900' }, itemSub: { fontSize: 11, lineHeight: 16, marginTop: 3 },
-  emptyCard: { borderWidth: 1, borderRadius: 18, padding: 15, flexDirection: 'row', gap: 12, alignItems: 'center', marginBottom: 9 },
+  section: { fontSize: 16, fontWeight: '900', marginBottom: 9, marginTop: 2 }, childCard: { borderWidth: 1, borderRadius: 18, padding: 13, flexDirection: 'row', alignItems: 'center', gap: 11, marginBottom: 8 }, childAvatar: { width: 45, height: 45, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  itemTitle: { fontSize: 13, fontWeight: '900' }, itemSub: { fontSize: 11, lineHeight: 16, marginTop: 3 }, emptyCard: { borderWidth: 1, borderRadius: 18, padding: 15, flexDirection: 'row', gap: 12, alignItems: 'center', marginBottom: 9 },
   primaryAction: { minHeight: 48, borderRadius: 15, justifyContent: 'center', alignItems: 'center', flexDirection: 'row', gap: 8, marginBottom: 19 }, primaryActionText: { color: '#fff', fontSize: 13, fontWeight: '900' },
   accompagnement: { borderWidth: 1, borderRadius: 18, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 11, marginBottom: 19 }, accompagnementIcon: { width: 42, height: 42, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
-  menu: { borderWidth: 1, borderRadius: 18, paddingHorizontal: 14, marginBottom: 12 }, menuRow: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 12 }, menuLabel: { flex: 1, fontSize: 13, fontWeight: '700' },
+  menu: { borderWidth: 1, borderRadius: 18, paddingHorizontal: 14, marginBottom: 12 }, menuRow: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 12 }, menuLabel: { fontSize: 13, fontWeight: '700' },
   reportButton: { minHeight: 52, borderWidth: 1, borderRadius: 16, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15, gap: 10 }, reportText: { flex: 1, fontSize: 13, fontWeight: '800' },
 });
