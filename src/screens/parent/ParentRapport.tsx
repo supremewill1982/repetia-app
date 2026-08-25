@@ -2,8 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
-import { auth } from '../../services/firebase';
-import { getEnfantsDuParent } from '../../services/parentService';
+import { auth } from '../../services/firebaseConfig';
+import { getEnfantsLies } from '../../services/parentService';
 
 export default function ParentRapport({ route }: any) {
   const { colors } = useTheme();
@@ -19,9 +19,8 @@ export default function ParentRapport({ route }: any) {
     let active = true;
     (async () => {
       try {
-        const uid = auth.currentUser?.uid;
-        if (!uid) return;
-        const enfants = await getEnfantsDuParent(uid);
+        if (!auth.currentUser) return;
+        const enfants = await getEnfantsLies();
         if (active && enfants?.[0]) setEnfant(enfants[0]);
       } catch (error) {
         console.warn('[ParentRapport] chargement enfant:', error);
