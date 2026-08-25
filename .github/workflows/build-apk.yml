@@ -1,9 +1,7 @@
 name: Build Expo APK
 
 on:
-  push:
-    branches: [main, master]
-  workflow_dispatch:  # Permet de lancer manuellement depuis GitHub
+  workflow_dispatch:  # Build manuel uniquement : nécessite EXPO_TOKEN configuré dans GitHub Secrets
 
 jobs:
   build:
@@ -33,8 +31,19 @@ jobs:
       - name: 🏗️ Installer Expo et EAS CLI
         run: npm install -g expo-cli eas-cli
 
+      - name: 🔑 Vérifier EXPO_TOKEN
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "EXPO_TOKEN est requis pour un build APK EAS. Configurez-le dans GitHub Secrets puis relancez ce workflow."
+            exit 1
+          fi
+
       - name: 🔑 Authentification Expo
-        run: eas login --non-interactive --token ${{ secrets.EXPO_TOKEN }}
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: eas login --non-interactive --token "$EXPO_TOKEN"
 
       - name: 🚀 Build APK avec EAS
         run: eas build --platform android --profile preview --non-interactive --output ./app-build.apk
