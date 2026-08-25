@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main, master]
   push:
-    branches: [fix/repetiteurs-validation-admin]
+    branches: [main, master, fix/repetiteurs-validation-admin]
 
 jobs:
   typecheck:
