@@ -1,58 +1,104 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
+import { getEnfantsLies, EnfantLie } from '../../services/parentService';
 
 export default function ParentParametres({ navigation }: any) {
   const { colors } = useTheme();
   const { userData } = useAuth();
   const parent = userData as any;
   const nom = [parent?.prenom, parent?.nom].filter(Boolean).join(' ') || 'Parent';
+  const [enfants, setEnfants] = useState<EnfantLie[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const charger = useCallback(async () => {
+    setLoading(true);
+    setEnfants(await getEnfantsLies());
+    setLoading(false);
+  }, []);
+  useFocusEffect(useCallback(() => { charger(); }, [charger]));
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
-      <View style={[styles.hero, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <View style={[styles.avatar, { backgroundColor: colors.primary + '18' }]}>
-          <MaterialCommunityIcons name="account-heart" size={42} color={colors.primary} />
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <View style={styles.headerRow}>
+        <View>
+          <Text style={[styles.kicker, { color: colors.textMuted }]}>MON ESPACE</Text>
+          <Text style={[styles.title, { color: colors.text }]}>Mon profil</Text>
         </View>
-        <Text style={[styles.name, { color: colors.text }]}>{nom}</Text>
-        <Text style={[styles.email, { color: colors.textMuted }]}>{parent?.email || 'Compte parent'}</Text>
+        <View style={[styles.avatarSmall, { backgroundColor: colors.primary + '18' }]}><MaterialCommunityIcons name="account-heart-outline" size={22} color={colors.primary} /></View>
       </View>
 
-      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.section, { color: colors.text }]}>Mon compte</Text>
-        <Row icon="account-outline" label="Informations personnelles" value={nom} colors={colors} />
-        <Row icon="shield-check-outline" label="Rôle" value="Parent" colors={colors} />
-        <Row icon="email-outline" label="Email" value={parent?.email || '—'} colors={colors} />
+      <View style={[styles.identity, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={[styles.avatar, { backgroundColor: colors.primary + '18' }]}><Text style={[styles.avatarLetter, { color: colors.primary }]}>{(parent?.prenom || 'P').charAt(0).toUpperCase()}</Text></View>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.name, { color: colors.text }]}>{nom}</Text>
+          <Text style={[styles.email, { color: colors.textMuted }]}>{parent?.email || 'Compte parent'}</Text>
+          <View style={styles.roleRow}><MaterialCommunityIcons name="shield-check-outline" size={14} color={colors.primary} /><Text style={[styles.role, { color: colors.primary }]}>Compte parent</Text></View>
+        </View>
       </View>
 
-      <TouchableOpacity style={[styles.action, { backgroundColor: colors.primary }]} onPress={() => navigation.navigate('ParentLier')}>
-        <MaterialCommunityIcons name="account-plus-outline" size={22} color="white" />
-        <Text style={styles.actionText}>Lier un enfant</Text>
+      <Section title="Mes enfants" colors={colors} />
+      {loading ? <ActivityIndicator color={colors.primary} style={{ marginVertical: 18 }} /> : enfants.length === 0 ? (
+        <View style={[styles.emptyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <MaterialCommunityIcons name="account-child-outline" size={30} color={colors.primary} />
+          <View style={{ flex: 1 }}><Text style={[styles.itemTitle, { color: colors.text }]}>Aucun enfant lié</Text><Text style={[styles.itemSub, { color: colors.textMuted }]}>Ajoutez un enfant pour personnaliser son suivi.</Text></View>
+        </View>
+      ) : enfants.map((e) => (
+        <TouchableOpacity key={e.uid} style={[styles.childCard, { backgroundColor: colors.surface, borderColor: colors.border }]} onPress={() => navigation.navigate('Suivi')}>
+          <View style={[styles.childAvatar, { backgroundColor: colors.primary + '14' }]}><MaterialCommunityIcons name="account-child" size={24} color={colors.primary} /></View>
+          <View style={{ flex: 1 }}><Text style={[styles.itemTitle, { color: colors.text }]}>{e.prenom}</Text><Text style={[styles.itemSub, { color: colors.textMuted }]}>{e.classe || 'Classe non renseignée'} {e.serie ? `· Série ${e.serie}` : ''}</Text></View>
+          <MaterialCommunityIcons name="chevron-right" size={22} color={colors.textMuted} />
+        </TouchableOpacity>
+      ))}
+
+      <TouchableOpacity style={[styles.primaryAction, { backgroundColor: colors.primary }]} onPress={() => navigation.navigate('ParentLier')}>
+        <MaterialCommunityIcons name="account-plus-outline" size={21} color="#fff" /><Text style={styles.primaryActionText}>Ajouter un enfant</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={[styles.secondary, { backgroundColor: colors.surface, borderColor: colors.border }]} onPress={() => navigation.navigate('ParentRapport')}>
-        <MaterialCommunityIcons name="file-chart-outline" size={22} color={colors.primary} />
-        <Text style={[styles.secondaryText, { color: colors.text }]}>Voir mes rapports</Text>
+
+      <Section title="Mon accompagnement" colors={colors} />
+      <View style={[styles.accompagnement, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={[styles.accompagnementIcon, { backgroundColor: colors.primary + '18' }]}><MaterialCommunityIcons name="sparkles" size={21} color={colors.primary} /></View>
+        <View style={{ flex: 1 }}><Text style={[styles.itemTitle, { color: colors.text }]}>Suivi RÉPETIA</Text><Text style={[styles.itemSub, { color: colors.textMuted }]}>Progression, rapports et recommandations réunis au même endroit.</Text></View>
+        <MaterialCommunityIcons name="check-circle" size={20} color={colors.primary} />
+      </View>
+
+      <Section title="Mon compte" colors={colors} />
+      <View style={[styles.menu, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <MenuRow icon="account-edit-outline" label="Informations personnelles" onPress={() => {}} colors={colors} />
+        <MenuRow icon="bell-outline" label="Notifications" onPress={() => {}} colors={colors} />
+        <MenuRow icon="shield-lock-outline" label="Sécurité" onPress={() => {}} colors={colors} />
+        <MenuRow icon="help-circle-outline" label="Aide et support" onPress={() => {}} colors={colors} last />
+      </View>
+
+      <TouchableOpacity style={[styles.reportButton, { borderColor: colors.border, backgroundColor: colors.surface }]} onPress={() => navigation.navigate('Suivi')}>
+        <MaterialCommunityIcons name="file-chart-outline" size={20} color={colors.primary} /><Text style={[styles.reportText, { color: colors.text }]}>Voir mes rapports</Text><MaterialCommunityIcons name="chevron-right" size={20} color={colors.textMuted} />
       </TouchableOpacity>
     </ScrollView>
   );
 }
 
-function Row({ icon, label, value, colors }: any) {
-  return <View style={[styles.row, { borderBottomColor: colors.border }]}>
-    <MaterialCommunityIcons name={icon} size={21} color={colors.primary} />
-    <View style={{ flex: 1 }}><Text style={[styles.label, { color: colors.textMuted }]}>{label}</Text><Text style={[styles.value, { color: colors.text }]} numberOfLines={1}>{value}</Text></View>
-  </View>;
+function Section({ title, colors }: any) { return <Text style={[styles.section, { color: colors.text }]}>{title}</Text>; }
+function MenuRow({ icon, label, onPress, colors, last }: any) {
+  return <TouchableOpacity onPress={onPress} style={[styles.menuRow, !last && { borderBottomWidth: 1, borderBottomColor: colors.border }]}><MaterialCommunityIcons name={icon} size={21} color={colors.primary} /><Text style={[styles.menuLabel, { color: colors.text }]}>{label}</Text><MaterialCommunityIcons name="chevron-right" size={19} color={colors.textMuted} /></TouchableOpacity>;
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 }, content: { padding: 16, paddingBottom: 32, gap: 12 },
-  hero: { borderWidth: 1, borderRadius: 22, padding: 24, alignItems: 'center' },
-  avatar: { width: 86, height: 86, borderRadius: 43, alignItems: 'center', justifyContent: 'center' },
-  name: { fontSize: 24, fontWeight: '900', marginTop: 12 }, email: { fontSize: 12, marginTop: 4 },
-  card: { borderWidth: 1, borderRadius: 18, paddingHorizontal: 15 }, section: { fontSize: 16, fontWeight: '900', paddingVertical: 14 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 13, borderTopWidth: 1 }, label: { fontSize: 10 }, value: { fontSize: 13, fontWeight: '700', marginTop: 2 },
-  action: { minHeight: 52, borderRadius: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }, actionText: { color: 'white', fontWeight: '900', fontSize: 14 },
-  secondary: { minHeight: 52, borderRadius: 15, borderWidth: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }, secondaryText: { fontWeight: '800', fontSize: 14 },
+  container: { flex: 1 }, content: { padding: 18, paddingBottom: 34 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  kicker: { fontSize: 10, fontWeight: '800', letterSpacing: 1.2 }, title: { fontSize: 25, fontWeight: '900', marginTop: 3 },
+  avatarSmall: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
+  identity: { borderWidth: 1, borderRadius: 22, padding: 17, flexDirection: 'row', alignItems: 'center', gap: 13, marginBottom: 20 },
+  avatar: { width: 62, height: 62, borderRadius: 31, justifyContent: 'center', alignItems: 'center' }, avatarLetter: { fontSize: 25, fontWeight: '900' },
+  name: { fontSize: 19, fontWeight: '900' }, email: { fontSize: 11, marginTop: 3 }, roleRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 7 }, role: { fontSize: 10, fontWeight: '800' },
+  section: { fontSize: 16, fontWeight: '900', marginBottom: 9, marginTop: 2 },
+  childCard: { borderWidth: 1, borderRadius: 18, padding: 13, flexDirection: 'row', alignItems: 'center', gap: 11, marginBottom: 8 }, childAvatar: { width: 45, height: 45, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  itemTitle: { fontSize: 13, fontWeight: '900' }, itemSub: { fontSize: 11, lineHeight: 16, marginTop: 3 },
+  emptyCard: { borderWidth: 1, borderRadius: 18, padding: 15, flexDirection: 'row', gap: 12, alignItems: 'center', marginBottom: 9 },
+  primaryAction: { minHeight: 48, borderRadius: 15, justifyContent: 'center', alignItems: 'center', flexDirection: 'row', gap: 8, marginBottom: 19 }, primaryActionText: { color: '#fff', fontSize: 13, fontWeight: '900' },
+  accompagnement: { borderWidth: 1, borderRadius: 18, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 11, marginBottom: 19 }, accompagnementIcon: { width: 42, height: 42, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
+  menu: { borderWidth: 1, borderRadius: 18, paddingHorizontal: 14, marginBottom: 12 }, menuRow: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 12 }, menuLabel: { flex: 1, fontSize: 13, fontWeight: '700' },
+  reportButton: { minHeight: 52, borderWidth: 1, borderRadius: 16, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15, gap: 10 }, reportText: { flex: 1, fontSize: 13, fontWeight: '800' },
 });
