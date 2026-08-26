@@ -1,0 +1,2 @@
+import {getFunctions,httpsCallable}from'firebase/functions';import{app}from'./firebaseConfig';
+export async function generateSecureAI(params:{messages:Array<{role:string;content:string}>;temperature?:number;max_tokens?:number;imageBase64?:string;mimeType?:string}):Promise<string>{const functions=getFunctions(app,'us-central1');const call=httpsCallable<typeof params,{content:string}>(functions,'generateAiResponse');const result=await call(params);return result.data.content||'';}
