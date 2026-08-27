@@ -27,7 +27,8 @@ export default function AbonnementScreen({ navigation }: any) {
 
   if (loading) return <View style={[styles.center, { backgroundColor: colors.background }]}><ActivityIndicator size="large" color={colors.primary} /></View>;
 
-  const current = statut?.plan ?? 'gratuit';
+  const current: Plan = statut?.plan ?? 'gratuit';
+  const planIds = Object.keys(PLANS_INFO) as Plan[];
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -41,7 +42,8 @@ export default function AbonnementScreen({ navigation }: any) {
           <Text style={[styles.label, { color: colors.textSecondary }]}>Plan actuel</Text>
           <Text style={[styles.currentPlan, { color: colors.primary }]}>{PLANS_INFO[current].emoji} {PLANS_INFO[current].nom}</Text>
         </View>
-        {(Object.entries(PLANS_INFO) as [Plan, typeof PLANS_INFO.gratuit][]).map(([id, info]) => {
+        {planIds.map((id) => {
+          const info = PLANS_INFO[id];
           const isCurrent = id === current;
           const isPremium = id !== 'gratuit';
           return (
