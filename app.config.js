@@ -36,7 +36,6 @@ export default {
   extra: {
     openRouterApiKey: process.env.EXPO_PUBLIC_OPENROUTER_KEY || '',
     openRouterKey: process.env.EXPO_PUBLIC_OPENROUTER_KEY || '',
-    geminiApiKey: process.env.EXPO_PUBLIC_GEMINI_API_KEY || '',
     eas: {
       projectId: '29f40f56-e8f9-49ec-a115-253f1355721b',
     },
