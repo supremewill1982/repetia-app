@@ -1,10 +1,13 @@
 name: Build Expo APK
 
 on:
-  workflow_dispatch:  # Build manuel uniquement : nécessite EXPO_TOKEN configuré dans GitHub Secrets
+  workflow_dispatch:
+  push:
+    branches: [main]
 
 jobs:
   build:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[apk]')
     runs-on: ubuntu-latest
 
     steps:
