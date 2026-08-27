@@ -42,4 +42,23 @@ jobs:
       - name: 🚀 Build APK avec EAS
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: eas build --platform android --profile preview --non-interactive --wait
+        run: |
+          set -e
+          eas build --platform android --profile preview --non-interactive --wait --json > eas-build.json
+          cat eas-build.json
+          APK_URL=$(node -e "const fs=require('fs'); const x=JSON.parse(fs.readFileSync('eas-build.json','utf8')); const b=Array.isArray(x)?x[0]:x; const u=b?.artifacts?.buildUrl||b?.artifacts?.applicationArchiveUrl; if(!u) process.exit(2); process.stdout.write(u)")
+          echo "APK_URL=$APK_URL" >> "$GITHUB_ENV"
+          curl -fL "$APK_URL" -o repetia-preview.apk
+
+      - name: 📦 Publier l'APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: repetia-preview-apk
+          path: repetia-preview.apk
+          if-no-files-found: error
+
+      - name: 🔍 Vérifier l'APK
+        run: |
+          test -s repetia-preview.apk
+          file repetia-preview.apk
+          ls -lh repetia-preview.apk
