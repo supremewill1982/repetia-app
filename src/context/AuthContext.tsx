@@ -48,13 +48,41 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (userSnap.exists()) {
           const data = userSnap.data();
           if (['parent','eleve','repetiteur','etablissement','admin'].includes(String(data.role))) {
+            if (data.role === 'repetiteur') {
+              const tuteurSnap = await getDoc(doc(db, 'tuteurs', firebaseUser.uid));
+              if (tuteurSnap.exists()) {
+                const tuteur = tuteurSnap.data();
+                const merged = { ...tuteur, ...data, uid: firebaseUser.uid, email: data.email || tuteur.email || firebaseUser.email || '' } as Record<string, unknown>;
+                setUserRole('repetiteur'); setUserData(merged);
+                await setDoc(doc(db, 'users', firebaseUser.uid), {
+                  uid: firebaseUser.uid, role: 'repetiteur', email: merged.email,
+                  nom: tuteur.nom || data.nom || '', prenom: tuteur.prenom || data.prenom || '',
+                  telephone: tuteur.telephone || data.telephone || '', whatsapp: tuteur.whatsapp || '',
+                  matieres: tuteur.matieres || [], niveaux: tuteur.niveaux || [],
+                  diplome: tuteur.diplome || '', universite: tuteur.universite || '',
+                  bio: tuteur.bio || '', experience: tuteur.anneeExp != null ? String(tuteur.anneeExp) : '',
+                  tarif: Number(tuteur.prix60min || tuteur.prix30min || 0), profileImage: tuteur.profileImage || '',
+                }, { merge: true });
+                return;
+              }
+            }
             setUserRole(data.role as UserRole); setUserData(data as Record<string, unknown>); return;
           }
         }
-        // Compatibilité avec les comptes répétiteurs historiques : leur profil métier
-        // peut exister dans /tuteurs même si /users/role n'a jamais été migré.
         const tuteurSnap = await getDoc(doc(db, 'tuteurs', firebaseUser.uid));
-        if (tuteurSnap.exists()) { setUserRole('repetiteur'); setUserData(tuteurSnap.data() as Record<string, unknown>); return; }
+        if (tuteurSnap.exists()) {
+          const tuteur = tuteurSnap.data();
+          setUserRole('repetiteur'); setUserData(tuteur as Record<string, unknown>);
+          await setDoc(doc(db, 'users', firebaseUser.uid), {
+            uid: firebaseUser.uid, role: 'repetiteur', email: firebaseUser.email || tuteur.email || '',
+            nom: tuteur.nom || '', prenom: tuteur.prenom || '', telephone: tuteur.telephone || '',
+            whatsapp: tuteur.whatsapp || '', matieres: tuteur.matieres || [], niveaux: tuteur.niveaux || [],
+            diplome: tuteur.diplome || '', universite: tuteur.universite || '', bio: tuteur.bio || '',
+            experience: tuteur.anneeExp != null ? String(tuteur.anneeExp) : '',
+            tarif: Number(tuteur.prix60min || tuteur.prix30min || 0), profileImage: tuteur.profileImage || '',
+          }, { merge: true });
+          return;
+        }
         setUserRole(null); setUserData(null);
       } catch (error) {
         console.error('❌ Erreur détermination rôle:', error); setUserRole(null); setUserData(null);
