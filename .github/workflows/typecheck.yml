@@ -21,3 +21,5 @@ jobs:
         run: npm ci
       - name: TypeScript
         run: npx tsc --noEmit
+      - name: Jest
+        run: npm test
