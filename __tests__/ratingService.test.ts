@@ -1,101 +1,81 @@
-import { submitRating, getRatingsForRepetiteur, getAverageRatingForRepetiteur } from '../src/services/ratingService';
-import { db } from '../src/services/firebaseConfig';
-import { collection, addDoc, getDocs, query, where, deleteDoc, doc } from 'firebase/firestore';
+const ratings: Array<{ id: string; data: Record<string, unknown> }> = [];
+let nextId = 1;
 
-// Mock data for testing
+jest.mock('../src/services/firebaseConfig', () => ({ db: {} }));
+jest.mock('../src/services/notificationService', () => ({
+  scheduleRatingNotification: jest.fn().mockResolvedValue(undefined),
+}));
+jest.mock('firebase/firestore', () => ({
+  collection: (_db: unknown, name: string) => ({ type: 'collection', name }),
+  addDoc: jest.fn(async (_collection: { name: string }, data: Record<string, unknown>) => {
+    const id = `rating-${nextId++}`;
+    ratings.push({ id, data });
+    return { id };
+  }),
+  query: jest.fn((_collection: { name: string }, filter: { field: string; value: unknown }) => ({ filter })),
+  where: jest.fn((field: string, _operator: string, value: unknown) => ({ field, value })),
+  getDocs: jest.fn(async (q: { filter?: { field: string; value: unknown } }) => {
+    const matching = q.filter
+      ? ratings.filter(r => r.data[q.filter!.field] === q.filter!.value)
+      : ratings;
+    return {
+      docs: matching.map(r => ({ id: r.id, ref: { id: r.id }, data: () => r.data })),
+    };
+  }),
+  doc: jest.fn((_db: unknown, collectionName: string, id: string) => ({ collectionName, id })),
+  updateDoc: jest.fn(async () => undefined),
+  getDoc: jest.fn(async () => ({ exists: () => false })),
+}));
+
+import { submitRating, getRatingsForRepetiteur, getAverageRatingForRepetiteur } from '../src/services/ratingService';
+
 const testRepetiteurId = 'test-repetiteur-123';
 const testStudentId = 'test-student-456';
 
-describe('Rating Service', () => {
-  // Clean up test data after tests
-  afterAll(async () => {
-    try {
-      const q = query(collection(db, 'ratings'), where('repetiteurId', '==', testRepetiteurId));
-      const querySnapshot = await getDocs(q);
-      const deletePromises = querySnapshot.docs.map(doc => deleteDoc(doc.ref));
-      await Promise.all(deletePromises);
-      console.log('✅ Test data cleaned up');
-    } catch (error) {
-      console.error('❌ Error cleaning up test data:', error);
-    }
+describe('Rating Service (isolated)', () => {
+  beforeEach(() => {
+    ratings.length = 0;
+    nextId = 1;
   });
 
-  test('submitRating should create a new rating and update average', async () => {
-    const ratingData = {
+  test('submitRating creates a rating without touching real Firebase', async () => {
+    const ratingId = await submitRating({
       repetiteurId: testRepetiteurId,
       studentId: testStudentId,
       rating: 4.5,
       comment: 'Excellent teacher!',
-    };
+    });
 
-    try {
-      const ratingId = await submitRating(ratingData);
-      expect(ratingId).toBeTruthy();
-      expect(typeof ratingId).toBe('string');
-
-      // Verify rating was created
-      const ratings = await getRatingsForRepetiteur(testRepetiteurId);
-      expect(ratings.length).toBe(1);
-      expect(ratings[0].rating).toBe(4.5);
-      expect(ratings[0].comment).toBe('Excellent teacher!');
-
-      // Verify average rating
-      const average = await getAverageRatingForRepetiteur(testRepetiteurId);
-      expect(average).toBe(4.5);
-
-      console.log('✅ submitRating test passed');
-    } catch (error) {
-      console.error('❌ submitRating test failed:', error);
-      fail(error);
-    }
+    expect(ratingId).toBe('rating-1');
+    const result = await getRatingsForRepetiteur(testRepetiteurId);
+    expect(result).toHaveLength(1);
+    expect(result[0].rating).toBe(4.5);
+    expect(result[0].comment).toBe('Excellent teacher!');
   });
 
-  test('getRatingsForRepetiteur should return empty array for non-existent repetiteur', async () => {
-    try {
-      const ratings = await getRatingsForRepetiteur('non-existent-id');
-      expect(ratings).toBeInstanceOf(Array);
-      expect(ratings.length).toBe(0);
-      console.log('✅ getRatingsForRepetiteur test passed');
-    } catch (error) {
-      console.error('❌ getRatingsForRepetiteur test failed:', error);
-      fail(error);
-    }
+  test('getRatingsForRepetiteur returns empty for another repetiteur', async () => {
+    await submitRating({
+      repetiteurId: testRepetiteurId,
+      studentId: testStudentId,
+      rating: 4,
+      comment: 'Good',
+    });
+
+    await expect(getRatingsForRepetiteur('non-existent-id')).resolves.toEqual([]);
   });
 
-  test('getAverageRatingForRepetiteur should return 0 for no ratings', async () => {
-    try {
-      const average = await getAverageRatingForRepetiteur('non-existent-id');
-      expect(average).toBe(0);
-      console.log('✅ getAverageRatingForRepetiteur test passed');
-    } catch (error) {
-      console.error('❌ getAverageRatingForRepetiteur test failed:', error);
-      fail(error);
-    }
+  test('getAverageRatingForRepetiteur returns 0 with no ratings', async () => {
+    await expect(getAverageRatingForRepetiteur('non-existent-id')).resolves.toBe(0);
   });
 
-  test('average rating calculation should be correct with multiple ratings', async () => {
-    // Add more ratings
-    const ratingsData = [
-      { repetiteurId: testRepetiteurId, studentId: testStudentId, rating: 3.0, comment: 'Good' },
-      { repetiteurId: testRepetiteurId, studentId: testStudentId, rating: 5.0, comment: 'Excellent' },
-    ];
+  test('average rating calculation is correct', async () => {
+    await Promise.all([
+      submitRating({ repetiteurId: testRepetiteurId, studentId: testStudentId, rating: 3, comment: 'Good' }),
+      submitRating({ repetiteurId: testRepetiteurId, studentId: testStudentId, rating: 5, comment: 'Excellent' }),
+      submitRating({ repetiteurId: testRepetiteurId, studentId: testStudentId, rating: 4.5, comment: 'Très bien' }),
+    ]);
 
-    try {
-      // Submit additional ratings
-      await Promise.all(ratingsData.map(rating => submitRating(rating)));
-
-      // Verify average calculation: (4.5 + 3.0 + 5.0) / 3 = 4.166...
-      const average = await getAverageRatingForRepetiteur(testRepetiteurId);
-      expect(average).toBeCloseTo(4.1667, 2);
-
-      // Verify total count
-      const ratings = await getRatingsForRepetiteur(testRepetiteurId);
-      expect(ratings.length).toBe(3);
-
-      console.log('✅ Average rating calculation test passed');
-    } catch (error) {
-      console.error('❌ Average rating calculation test failed:', error);
-      fail(error);
-    }
+    await expect(getAverageRatingForRepetiteur(testRepetiteurId)).resolves.toBeCloseTo(4.1667, 2);
+    await expect(getRatingsForRepetiteur(testRepetiteurId)).resolves.toHaveLength(3);
   });
 });
