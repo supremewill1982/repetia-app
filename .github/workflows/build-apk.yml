@@ -1,5 +1,6 @@
 name: Build Expo APK
 
+# Trigger de validation post-correction mémoire Gradle/EAS local.
 on:
   workflow_dispatch:
   push:
