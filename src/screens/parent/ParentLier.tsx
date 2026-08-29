@@ -1,30 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import {
-  View, Text, StyleSheet, TouchableOpacity,
-  TextInput, ActivityIndicator, Alert,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
-import { lierCompteEnfant } from '../../services/parentService';
+import { lierCompteEnfantSecure } from '../../services/parentLinkService';
 
 export default function ParentLier({ navigation, route }: any) {
   const { colors } = useTheme();
-  const [code, setCode]       = useState('');
+  const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Code transmis automatiquement par un lien RÉPÉTIA
   useEffect(() => {
     const codeRecu = route?.params?.code;
-
     if (typeof codeRecu === 'string') {
-      const codeNettoye = codeRecu
-        .replace(/[^0-9]/g, '')
-        .slice(0, 6);
-
-      if (codeNettoye.length === 6) {
-        setCode(codeNettoye);
-      }
+      const codeNettoye = codeRecu.replace(/[^0-9]/g, '').slice(0, 6);
+      if (codeNettoye.length === 6) setCode(codeNettoye);
     }
   }, [route?.params?.code]);
 
@@ -35,11 +25,11 @@ export default function ParentLier({ navigation, route }: any) {
     }
     setLoading(true);
     try {
-      const enfant = await lierCompteEnfant(code.trim());
+      const enfant = await lierCompteEnfantSecure(code);
       Alert.alert(
         '✅ Compte lié !',
         `${enfant.prenom} (${enfant.classe} Série ${enfant.serie}) est maintenant lié à votre compte.`,
-        [{ text: 'Super !', onPress: () => navigation.goBack() }]
+        [{ text: 'Super !', onPress: () => navigation.goBack() }],
       );
     } catch (e: any) {
       Alert.alert('Erreur', e.message || 'Code invalide ou expiré.');
@@ -56,25 +46,16 @@ export default function ParentLier({ navigation, route }: any) {
         </TouchableOpacity>
         <Text style={styles.headerTitre}>Lier un compte enfant</Text>
       </LinearGradient>
-
       <View style={styles.content}>
         <Text style={{ fontSize: 64, textAlign: 'center' }}>🔗</Text>
-        <Text style={[styles.titre, { color: colors.text }]}>
-          Code de liaison
-        </Text>
+        <Text style={[styles.titre, { color: colors.text }]}>Code de liaison</Text>
         <Text style={[styles.desc, { color: colors.textSecondary }]}>
           Demandez à votre enfant d'ouvrir RÉPÉTIA et d'aller dans{'\n'}
           Profil → Générer un code parent{'\n\n'}
           Le code est valable 48 heures.
         </Text>
-
-        {/* Input code */}
         <TextInput
-          style={[styles.codeInput, {
-            backgroundColor: colors.surface,
-            borderColor:     code.length === 6 ? colors.primary : colors.border,
-            color:           colors.text,
-          }]}
+          style={[styles.codeInput, { backgroundColor: colors.surface, borderColor: code.length === 6 ? colors.primary : colors.border, color: colors.text }]}
           placeholder="000000"
           placeholderTextColor={colors.textMuted}
           value={code}
@@ -83,21 +64,12 @@ export default function ParentLier({ navigation, route }: any) {
           maxLength={6}
           textAlign="center"
         />
-
         <TouchableOpacity
-          style={[styles.lierBtn, {
-            backgroundColor: code.length === 6 ? colors.primary : colors.border,
-          }]}
+          style={[styles.lierBtn, { backgroundColor: code.length === 6 ? colors.primary : colors.border }]}
           onPress={handleLier}
           disabled={loading || code.length !== 6}
         >
-          {loading
-            ? <ActivityIndicator size="small" color="white" />
-            : <>
-                <MaterialCommunityIcons name="link-plus" size={22} color="white" />
-                <Text style={styles.lierBtnTxt}>Lier ce compte</Text>
-              </>
-          }
+          {loading ? <ActivityIndicator size="small" color="white" /> : <><MaterialCommunityIcons name="link-plus" size={22} color="white" /><Text style={styles.lierBtnTxt}>Lier ce compte</Text></>}
         </TouchableOpacity>
       </View>
     </View>
@@ -111,7 +83,7 @@ const styles = StyleSheet.create({
   headerTitre: { fontSize: 18, fontWeight: '700', color: 'white' },
   content: { flex: 1, padding: 32, alignItems: 'center', gap: 20 },
   titre: { fontSize: 24, fontWeight: '800', textAlign: 'center' },
-  desc:  { fontSize: 14, textAlign: 'center', lineHeight: 22 },
+  desc: { fontSize: 14, textAlign: 'center', lineHeight: 22 },
   codeInput: { fontSize: 40, fontWeight: '800', letterSpacing: 16, borderWidth: 2, borderRadius: 20, paddingVertical: 20, paddingHorizontal: 32, width: '100%' },
   lierBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 32, paddingVertical: 16, borderRadius: 16, width: '100%', justifyContent: 'center' },
   lierBtnTxt: { color: 'white', fontSize: 16, fontWeight: '700' },
