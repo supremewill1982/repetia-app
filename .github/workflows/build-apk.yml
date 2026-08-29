@@ -25,7 +25,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: 🤖 Setup Android SDK (fallback local)
+      - name: 🤖 Setup Android SDK (local build)
         uses: android-actions/setup-android@v3
 
       - name: 📱 Installer les composants Android nécessaires
@@ -47,30 +47,23 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: test -n "$EXPO_TOKEN"
 
-      - name: 🚀 Build APK — EAS cloud puis fallback local
+      - name: 🚀 Build APK — local EAS (sans quota cloud)
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EAS_LOCAL_BUILD_ARTIFACTS_DIR: ${{ github.workspace }}/eas-artifacts
         run: |
-          set +e
-          echo "Tentative 1: EAS Build cloud"
-          eas build --platform android --profile preview --non-interactive --wait --json > eas-build.json
-          CLOUD_EXIT=$?
-
-          if [ "$CLOUD_EXIT" -eq 0 ]; then
-            echo "Build cloud réussi."
-            cat eas-build.json
-            APK_URL=$(node -e "const fs=require('fs'); const x=JSON.parse(fs.readFileSync('eas-build.json','utf8')); const b=Array.isArray(x)?x[0]:x; const u=b?.artifacts?.buildUrl||b?.artifacts?.applicationArchiveUrl; if(!u) process.exit(2); process.stdout.write(u)")
-            curl -fL "$APK_URL" -o repetia-preview.apk
-          else
-            echo "Build cloud indisponible (quota ou erreur distante). Tentative 2: EAS Build local."
-            rm -f eas-build.json
-            eas build --platform android --profile preview --local --non-interactive --output repetia-preview.apk
-            LOCAL_EXIT=$?
-            if [ "$LOCAL_EXIT" -ne 0 ]; then
-              echo "Build local EAS échoué avec le code $LOCAL_EXIT"
-              exit "$LOCAL_EXIT"
-            fi
-          fi
+          set -euo pipefail
+          rm -rf eas-artifacts repetia-preview.apk
+          mkdir -p eas-artifacts
+          echo "Build EAS local Android démarré."
+          timeout --signal=TERM --kill-after=60s 45m eas build \
+            --platform android \
+            --profile preview \
+            --local \
+            --non-interactive \
+            --output repetia-preview.apk
+          test -s repetia-preview.apk
+          echo "Build EAS local terminé."
 
       - name: 📦 Publier l'APK
         uses: actions/upload-artifact@v4
@@ -81,6 +74,9 @@ jobs:
 
       - name: 🔍 Vérifier l'APK
         run: |
+          set -e
           test -s repetia-preview.apk
           file repetia-preview.apk
           ls -lh repetia-preview.apk
+          unzip -t repetia-preview.apk >/dev/null
+          echo "APK ZIP valide."
