@@ -1,4 +1,4 @@
-name: Deploy Firebase Functions
+name: Deploy Firebase backend
 
 on:
   workflow_dispatch:
@@ -8,6 +8,7 @@ on:
       - 'functions/**'
       - 'firebase.json'
       - '.firebaserc'
+      - 'firestore.rules'
 
 jobs:
   deploy:
@@ -23,9 +24,13 @@ jobs:
 
       - name: Install function dependencies
         working-directory: functions
-        run: npm install
+        run: npm ci
 
-      - name: Deploy Firebase Functions
+      - name: Typecheck Firebase Functions
+        working-directory: functions
+        run: npm run build
+
+      - name: Deploy Firebase backend and Firestore rules
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -34,4 +39,4 @@ jobs:
           test -n "$FIREBASE_TOKEN" || { echo 'FIREBASE_TOKEN manquant dans GitHub Secrets'; exit 1; }
           test -n "$GEMINI_API_KEY" || { echo 'GEMINI_API_KEY manquant dans GitHub Secrets'; exit 1; }
           printf '%s' "$GEMINI_API_KEY" | npx firebase-tools functions:secrets:set GEMINI_API_KEY --token "$FIREBASE_TOKEN" --project monappedu-f6048 --non-interactive --format=json
-          npx firebase-tools deploy --only functions --token "$FIREBASE_TOKEN" --project monappedu-f6048 --non-interactive
+          npx firebase-tools deploy --only functions,firestore:rules --token "$FIREBASE_TOKEN" --project monappedu-f6048 --non-interactive
