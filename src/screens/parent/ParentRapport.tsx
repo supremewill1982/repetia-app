@@ -32,7 +32,7 @@ export default function ParentRapport({ navigation, route }: any) {
   const notes = useMemo(() => sessions.map(s => Number(s.note ?? s.score ?? (s.scoreTotal && s.scoreMax ? (s.scoreTotal / s.scoreMax) * 20 : NaN))).filter(n => Number.isFinite(n) && n > 0), [sessions]);
   const moyenne = notes.length ? (notes.reduce((a,b)=>a+b,0)/notes.length).toFixed(1) : '—';
   const progression = notes.length ? Math.round((Number(moyenne) / 20) * 100) : 0;
-  if (loading) return <View style={[styles.loading,{backgroundColor:colors.background}]}><ActivityIndicator color={colors.primary} size="large"/></View>;
+  if (loading && !enfant && sessions.length === 0) return <View style={[styles.loading,{backgroundColor:colors.background}]}><ActivityIndicator color={colors.primary} size="large"/></View>;
   return <ScrollView style={[styles.container,{backgroundColor:colors.background}]} contentContainerStyle={styles.content}>
     <View><Text style={[styles.title,{color:colors.text}]}>Rapport de suivi</Text><Text style={[styles.subtitle,{color:colors.textMuted}]}>{enfant?.prenom ? `Progression de ${enfant.prenom}` : 'Suivi scolaire de votre enfant'}</Text></View>
     {enfants.length > 1 && <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.children}>{enfants.map(e=><TouchableOpacity key={e.uid} onPress={async()=>{enfantRef.current=e;setEnfant(e);const data=await getSessionsEnfant(e.uid);setSessions(data);setBienEtre(calculerScoreBienEtre(data));}} style={[styles.chip,{backgroundColor:e.uid===enfant?.uid?colors.primary:colors.surface,borderColor:e.uid===enfant?.uid?colors.primary:colors.border}]}><Text style={{color:e.uid===enfant?.uid?'#fff':colors.text,fontWeight:'800'}}>{e.prenom}</Text></TouchableOpacity>)}</ScrollView>}
