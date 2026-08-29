@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -7,19 +7,26 @@ import { getEnfantsLies, getSessionsEnfant, calculerScoreBienEtre } from '../../
 
 export default function ParentRapport({ navigation, route }: any) {
   const { colors } = useTheme();
-  const [enfants, setEnfants] = useState<any[]>([]); const [enfant, setEnfant] = useState<any>(route?.params?.enfant || null);
-  const [sessions, setSessions] = useState<any[]>(route?.params?.sessions || []); const [bienEtre, setBienEtre] = useState<any>(route?.params?.bienEtre || null); const [loading, setLoading] = useState(true);
+  const [enfants, setEnfants] = useState<any[]>([]);
+  const [enfant, setEnfant] = useState<any>(route?.params?.enfant || null);
+  const enfantRef = useRef<any>(route?.params?.enfant || null);
+  const [sessions, setSessions] = useState<any[]>(route?.params?.sessions || []);
+  const [bienEtre, setBienEtre] = useState<any>(route?.params?.bienEtre || null);
+  const [loading, setLoading] = useState(true);
   const charger = useCallback(async () => {
     setLoading(true);
     try {
-      const liste = await getEnfantsLies(); setEnfants(liste);
-      const actif = enfant ? liste.find(e => e.uid === enfant.uid) || enfant : liste[0] || null;
+      const liste = await getEnfantsLies();
+      setEnfants(liste);
+      const currentUid = enfantRef.current?.uid;
+      const actif = (currentUid ? liste.find(e => e.uid === currentUid) : null) || liste[0] || null;
+      enfantRef.current = actif;
       setEnfant(actif);
       if (actif) { const data = await getSessionsEnfant(actif.uid); setSessions(data); setBienEtre(calculerScoreBienEtre(data)); }
       else { setSessions([]); setBienEtre(null); }
     } catch (error) { console.error('[ParentRapport] chargement:', error); }
     finally { setLoading(false); }
-  }, [enfant]);
+  }, []);
   useFocusEffect(useCallback(() => { charger(); }, [charger]));
   const terminees = useMemo(() => sessions.filter(s => ['terminee','termine','confirmee'].includes(String(s.statut || '')) || s.score != null || s.scoreTotal != null), [sessions]);
   const notes = useMemo(() => sessions.map(s => Number(s.note ?? s.score ?? (s.scoreTotal && s.scoreMax ? (s.scoreTotal / s.scoreMax) * 20 : NaN))).filter(n => Number.isFinite(n) && n > 0), [sessions]);
@@ -28,7 +35,7 @@ export default function ParentRapport({ navigation, route }: any) {
   if (loading) return <View style={[styles.loading,{backgroundColor:colors.background}]}><ActivityIndicator color={colors.primary} size="large"/></View>;
   return <ScrollView style={[styles.container,{backgroundColor:colors.background}]} contentContainerStyle={styles.content}>
     <View><Text style={[styles.title,{color:colors.text}]}>Rapport de suivi</Text><Text style={[styles.subtitle,{color:colors.textMuted}]}>{enfant?.prenom ? `Progression de ${enfant.prenom}` : 'Suivi scolaire de votre enfant'}</Text></View>
-    {enfants.length > 1 && <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.children}>{enfants.map(e=><TouchableOpacity key={e.uid} onPress={()=>{setEnfant(e);}} style={[styles.chip,{backgroundColor:e.uid===enfant?.uid?colors.primary:colors.surface,borderColor:e.uid===enfant?.uid?colors.primary:colors.border}]}><Text style={{color:e.uid===enfant?.uid?'#fff':colors.text,fontWeight:'800'}}>{e.prenom}</Text></TouchableOpacity>)}</ScrollView>}
+    {enfants.length > 1 && <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.children}>{enfants.map(e=><TouchableOpacity key={e.uid} onPress={async()=>{enfantRef.current=e;setEnfant(e);const data=await getSessionsEnfant(e.uid);setSessions(data);setBienEtre(calculerScoreBienEtre(data));}} style={[styles.chip,{backgroundColor:e.uid===enfant?.uid?colors.primary:colors.surface,borderColor:e.uid===enfant?.uid?colors.primary:colors.border}]}><Text style={{color:e.uid===enfant?.uid?'#fff':colors.text,fontWeight:'800'}}>{e.prenom}</Text></TouchableOpacity>)}</ScrollView>}
     <View style={styles.grid}><Stat icon="school-outline" value={String(terminees.length)} label="Activités terminées" colors={colors}/><Stat icon="chart-line" value={moyenne} label="Moyenne récente" colors={colors}/><Stat icon="heart-pulse" value={bienEtre ? `${bienEtre.score}/100` : '—'} label="Bien-être scolaire" colors={colors}/><Stat icon="trending-up" value={`${progression}%`} label="Progression" colors={colors}/></View>
     <View style={[styles.card,{backgroundColor:colors.surface,borderColor:colors.border}]}><Text style={[styles.section,{color:colors.text}]}>Lecture rapide</Text><Text style={[styles.body,{color:colors.textSecondary}]}>{terminees.length ? `${terminees.length} activités récentes sont disponibles. La moyenne observée est ${moyenne}/20.` : 'Les données de progression apparaîtront après les premières séances.'}</Text>{bienEtre?.niveau&&<Info icon="heart-outline" text={`Bien-être scolaire : ${String(bienEtre.niveau)}`} colors={colors}/>}</View>
     <View style={[styles.card,{backgroundColor:colors.surface,borderColor:colors.border}]}><Text style={[styles.section,{color:colors.text}]}>À suivre</Text><Info icon="target" text={notes.length ? 'Comparer les matières et la régularité pour identifier le prochain levier de progression.' : 'Commencer une première activité pour établir une base de comparaison.'} colors={colors}/></View>
