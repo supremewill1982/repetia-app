@@ -24,24 +24,31 @@ export async function genererCodeLiaisonSecure(): Promise<string> {
   const infos = await getDoc(doc(db, 'users', user.uid));
   const data = infos.data() || {};
 
+  // codesLiaison is intentionally unreadable from the client. Do not perform a
+  // pre-read here: on a collision, the Firestore create/update rules reject the
+  // write and we simply generate another code.
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const code = randomCode();
-    const existing = await getDoc(doc(db, 'codesLiaison', code));
-    if (existing.exists()) continue;
-    await setDoc(doc(db, 'codesLiaison', code), {
-      code,
-      enfantId: user.uid,
-      enfantPrenom: data.prenom || 'Élève',
-      prenom: data.prenom || 'Élève',
-      classe: data.classe || 'Terminale',
-      serie: data.serie || 'C',
-      email: user.email || '',
-      actif: true,
-      expires: Date.now() + 48 * 60 * 60 * 1000,
-      dateCreation: new Date().toISOString(),
-      createdAt: serverTimestamp(),
-    });
-    return code;
+    try {
+      await setDoc(doc(db, 'codesLiaison', code), {
+        code,
+        enfantId: user.uid,
+        enfantPrenom: data.prenom || 'Élève',
+        prenom: data.prenom || 'Élève',
+        classe: data.classe || 'Terminale',
+        serie: data.serie || 'C',
+        email: user.email || '',
+        actif: true,
+        expires: Date.now() + 48 * 60 * 60 * 1000,
+        dateCreation: new Date().toISOString(),
+        createdAt: serverTimestamp(),
+      });
+      return code;
+    } catch (error: any) {
+      // A collision with another user's code is rejected by Firestore rules.
+      // Retry with another random code; propagate other failures immediately.
+      if (error?.code !== 'permission-denied' && error?.code !== 'already-exists') throw error;
+    }
   }
   throw new Error('Impossible de générer un code unique. Réessaie.');
 }
