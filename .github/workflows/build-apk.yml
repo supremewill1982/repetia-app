@@ -1,10 +1,8 @@
 name: Build Expo APK
 
-# Trigger de validation post-correction mémoire Gradle/EAS local.
+# Build APK volontairement manuel pour éviter les builds intermédiaires pendant un cycle de corrections.
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
 
 jobs:
   build:
