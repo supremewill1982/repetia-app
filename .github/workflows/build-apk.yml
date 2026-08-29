@@ -1,51 +1,42 @@
 name: Build Expo APK
 
-# Build APK volontairement manuel pour éviter les builds intermédiaires pendant un cycle de corrections.
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: 📦 Checkout du code
         uses: actions/checkout@v4
-
       - name: ⚙️ Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
-
       - name: 📱 Setup Java (pour Android)
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
-
       - name: 🤖 Setup Android SDK (local build)
         uses: android-actions/setup-android@v3
-
       - name: 📱 Installer les composants Android nécessaires
         run: |
           yes | sdkmanager --licenses >/dev/null || true
           sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
-
       - name: 📦 Installer les dépendances
         run: npm ci
-
       - name: 🧪 Vérifier TypeScript
         run: npx tsc --noEmit
-
       - name: 🏗️ Installer EAS CLI
         run: npm install -g eas-cli
-
       - name: 🔑 Vérifier EXPO_TOKEN
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: test -n "$EXPO_TOKEN"
-
       - name: 🚀 Build APK — local EAS (sans quota cloud)
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
@@ -59,22 +50,15 @@ jobs:
           mkdir -p eas-artifacts
           echo "Build EAS local Android démarré."
           echo "Gradle JVM: heap=4g, metaspace=1g"
-          timeout --signal=TERM --kill-after=60s 45m eas build \
-            --platform android \
-            --profile preview \
-            --local \
-            --non-interactive \
-            --output repetia-preview.apk
+          timeout --signal=TERM --kill-after=60s 45m eas build --platform android --profile preview --local --non-interactive --output repetia-preview.apk
           test -s repetia-preview.apk
           echo "Build EAS local terminé."
-
       - name: 📦 Publier l'APK
         uses: actions/upload-artifact@v4
         with:
           name: repetia-preview-apk
           path: repetia-preview.apk
           if-no-files-found: error
-
       - name: 🔍 Vérifier l'APK
         run: |
           set -e
