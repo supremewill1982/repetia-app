@@ -51,11 +51,15 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           EAS_LOCAL_BUILD_ARTIFACTS_DIR: ${{ github.workspace }}/eas-artifacts
+          GRADLE_OPTS: >-
+            -Dorg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g
+            -Dfile.encoding=UTF-8
         run: |
           set -euo pipefail
           rm -rf eas-artifacts repetia-preview.apk
           mkdir -p eas-artifacts
           echo "Build EAS local Android démarré."
+          echo "Gradle JVM: heap=4g, metaspace=1g"
           timeout --signal=TERM --kill-after=60s 45m eas build \
             --platform android \
             --profile preview \
