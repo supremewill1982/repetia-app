@@ -1,0 +1,41 @@
+name: Deploy RÉPÉTIA Firebase backend
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'functions/**'
+      - 'firebase.json'
+      - 'firestore.rules'
+      - '.firebaserc'
+      - '.github/workflows/deploy-backend.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install and build functions
+        working-directory: functions
+        run: |
+          npm ci
+          npm run build
+      - name: Deploy functions and Firestore rules
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$FIREBASE_TOKEN" || { echo 'FIREBASE_TOKEN manquant dans GitHub Secrets'; exit 1; }
+          test -n "$GEMINI_API_KEY" || { echo 'GEMINI_API_KEY manquant dans GitHub Secrets'; exit 1; }
+          printf '%s' "$GEMINI_API_KEY" | npx firebase-tools functions:secrets:set GEMINI_API_KEY --token "$FIREBASE_TOKEN" --project monappedu-f6048 --non-interactive --format=json
+          npx firebase-tools deploy --only functions,firestore:rules --token "$FIREBASE_TOKEN" --project monappedu-f6048 --non-interactive
