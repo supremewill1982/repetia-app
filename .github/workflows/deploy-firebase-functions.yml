@@ -32,6 +32,7 @@ jobs:
         run: npm run build
 
       - name: Prepare server-side Gemini runtime parameter
+        if: vars.FIREBASE_BLAZE_ENABLED == 'true'
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         working-directory: functions
@@ -41,10 +42,25 @@ jobs:
           printf 'GEMINI_API_KEY=%s\n' "$GEMINI_API_KEY" > .env.monappedu-f6048
           chmod 600 .env.monappedu-f6048
 
-      - name: Deploy Firebase backend and Firestore rules
+      - name: Deploy Firestore rules
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
         run: |
           set -euo pipefail
           test -n "$FIREBASE_TOKEN" || { echo 'FIREBASE_TOKEN manquant dans GitHub Secrets'; exit 1; }
-          npx firebase-tools deploy --only functions,firestore:rules --token "$FIREBASE_TOKEN" --project monappedu-f6048 --non-interactive
+          npx firebase-tools deploy --only firestore:rules --token "$FIREBASE_TOKEN" --project monappedu-f6048 --non-interactive
+
+      - name: Deploy Cloud Functions (Blaze required)
+        if: vars.FIREBASE_BLAZE_ENABLED == 'true'
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$FIREBASE_TOKEN" || { echo 'FIREBASE_TOKEN manquant dans GitHub Secrets'; exit 1; }
+          npx firebase-tools deploy --only functions --token "$FIREBASE_TOKEN" --project monappedu-f6048 --non-interactive
+
+      - name: Report Cloud Functions billing blocker
+        if: vars.FIREBASE_BLAZE_ENABLED != 'true'
+        run: |
+          echo "Cloud Functions non déployées: Firebase exige actuellement le forfait Blaze pour les nouveaux déploiements."
+          echo "Les règles Firestore ont été déployées séparément."
