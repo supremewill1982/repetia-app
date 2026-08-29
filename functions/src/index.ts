@@ -1,15 +1,15 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
-import { defineSecret } from 'firebase-functions/params';
+import { defineString } from 'firebase-functions/params';
 import { initializeApp } from 'firebase-admin/app';
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { getFirestore } from 'firebase-admin/firestore';
 
 initializeApp();
 const db = getFirestore();
-const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
+// Server-side runtime parameter. CI injects it through an ignored .env.<project> file.
+// It is never exposed through Expo/public client configuration.
+const GEMINI_API_KEY = defineString('GEMINI_API_KEY');
 const MODEL = 'gemini-2.5-flash';
 
-// Secure AI backend: API key remains in Firebase Secret Manager.
-// Deployment marker: keep Firebase Functions + Firestore rules deployment verifiable in CI.
 async function gemini(body: any) {
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
@@ -24,7 +24,7 @@ async function gemini(body: any) {
 }
 
 export const generateParentRecommendations = onCall(
-  { region: 'us-central1', secrets: [GEMINI_API_KEY], timeoutSeconds: 60, memory: '256MiB' },
+  { region: 'us-central1', timeoutSeconds: 60, memory: '256MiB' },
   async request => {
     if (!request.auth?.uid) throw new HttpsError('unauthenticated', 'Connexion requise.');
     const stats = request.data?.stats;
@@ -38,7 +38,7 @@ export const generateParentRecommendations = onCall(
 );
 
 export const generateAiResponse = onCall(
-  { region: 'us-central1', secrets: [GEMINI_API_KEY], timeoutSeconds: 60, memory: '512MiB' },
+  { region: 'us-central1', timeoutSeconds: 60, memory: '512MiB' },
   async request => {
     if (!request.auth?.uid) throw new HttpsError('unauthenticated', 'Connexion requise.');
     const messages = request.data?.messages;
