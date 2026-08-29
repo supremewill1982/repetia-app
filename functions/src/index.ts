@@ -9,6 +9,7 @@ const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
 const MODEL = 'gemini-2.5-flash';
 
 // Secure AI backend: API key remains in Firebase Secret Manager.
+// Deployment marker: keep Firebase Functions + Firestore rules deployment verifiable in CI.
 async function gemini(body: any) {
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
