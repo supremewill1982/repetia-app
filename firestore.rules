@@ -6,12 +6,9 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow read: if signedIn() && (request.auth.uid == userId || resource.data.parentId == request.auth.uid);
-      // A client may create its own profile, but can never create an admin profile.
       allow create: if signedIn() && request.auth.uid == userId
         && request.resource.data.uid == userId
         && request.resource.data.role in ['parent', 'eleve', 'repetiteur', 'etablissement'];
-      // A user may edit its own profile without changing identity or privilege level.
-      // Becoming a repetiteur is allowed only after the corresponding tuteur document exists.
       allow update: if signedIn() && request.auth.uid == userId
         && request.resource.data.uid == resource.data.uid
         && (
@@ -19,14 +16,10 @@ service cloud.firestore {
           || (request.resource.data.role == 'repetiteur'
               && get(/databases/$(database)/documents/tuteurs/$(userId)).data.statut in ['en_attente', 'certifie'])
         );
-      // Parent/child metadata changes are performed by the secure callable backend.
       allow update: if signedIn() && resource.data.parentId == request.auth.uid
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['parentId', 'parentPrenom']);
-      match /{subcollection}/{docId} {
-        allow read, write: if signedIn() && request.auth.uid == userId;
-      }
+      match /{subcollection}/{docId} { allow read, write: if signedIn() && request.auth.uid == userId; }
     }
-
     match /enfants/{userId} {
       allow read, write: if signedIn() && request.auth.uid == userId;
       match /{subcollection}/{docId} { allow read, write: if signedIn() && request.auth.uid == userId; }
@@ -60,7 +53,6 @@ service cloud.firestore {
       allow update: if signedIn() && resource.data.enfantId == request.auth.uid && request.resource.data.enfantId == request.auth.uid;
       allow delete: if signedIn() && resource.data.enfantId == request.auth.uid;
     }
-    // Link codes are server-only after creation; the parent validates them through linkChildByCode.
     match /codesLiaison/{code} {
       allow read: if false;
       allow create: if signedIn() && request.resource.data.enfantId == request.auth.uid;
@@ -74,7 +66,16 @@ service cloud.firestore {
     match /reservations/{reservationId} {
       allow read: if signedIn() && (resource.data.eleveId == request.auth.uid || resource.data.parentId == request.auth.uid || resource.data.tuteurId == request.auth.uid);
       allow create: if signedIn() && ((request.resource.data.eleveId == request.auth.uid) || (request.resource.data.parentId == request.auth.uid && request.resource.data.eleveId != null));
-      allow update: if signedIn() && ((resource.data.eleveId == request.auth.uid || resource.data.parentId == request.auth.uid || resource.data.tuteurId == request.auth.uid) && request.resource.data.eleveId == resource.data.eleveId && request.resource.data.tuteurId == resource.data.tuteurId && request.resource.data.parentId == resource.data.parentId);
+      // Reservation financial and identity fields are immutable after creation. Only the status may change.
+      allow update: if signedIn()
+        && request.resource.data.eleveId == resource.data.eleveId
+        && request.resource.data.tuteurId == resource.data.tuteurId
+        && request.resource.data.parentId == resource.data.parentId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['statut'])
+        && (
+          (request.auth.uid == resource.data.tuteurId && request.resource.data.statut in ['confirmee', 'terminee', 'annulee'])
+          || ((request.auth.uid == resource.data.parentId || request.auth.uid == resource.data.eleveId) && request.resource.data.statut == 'annulee')
+        );
       allow delete: if signedIn() && (resource.data.eleveId == request.auth.uid || resource.data.parentId == request.auth.uid);
     }
     match /supportTickets/{ticketId} {
