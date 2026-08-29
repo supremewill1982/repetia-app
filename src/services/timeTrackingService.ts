@@ -35,6 +35,8 @@ let stats: TimeStats = {
 let loaded = false;
 let loadedUserId: string | null = null;
 let saveInProgress: Promise<void> | null = null;
+// Prevent concurrent stop/background/cleanup calls from flushing the same session twice.
+let flushInProgress: Promise<void> | null = null;
 
 async function key(): Promise<string> {
   const uid = auth.currentUser?.uid || 'anon';
@@ -44,41 +46,25 @@ async function key(): Promise<string> {
 async function load() {
   try {
     const uid = auth.currentUser?.uid;
-
-    // Aucun utilisateur Firebase : état neutre et non verrouillé.
     if (!uid) {
       loaded = false;
       loadedUserId = null;
       stats = {
-        navigation: 0,
-        devoirs: 0,
-        revisions: 0,
-        global: 0,
-        currentSession: {
-          startTime: null,
-          type: null,
-          matiere: null,
-        },
+        navigation: 0, devoirs: 0, revisions: 0, global: 0,
+        currentSession: { startTime: null, type: null, matiere: null },
         parMatiere: {},
       };
       return;
     }
 
-    // 🔐 Si l'utilisateur change, ne jamais conserver
-    // la session active du compte précédent.
     const userChanged = loadedUserId !== null && loadedUserId !== uid;
-
     if (userChanged) {
-      stats.currentSession = {
-        startTime: null,
-        type: null,
-        matiere: null,
-      };
+      stats.currentSession = { startTime: null, type: null, matiere: null };
     }
 
     const k = await key();
     const local = await SecureStore.getItemAsync(k);
-    let loc = local ? JSON.parse(local) : null;
+    const loc = local ? JSON.parse(local) : null;
     const cloud = await getTimeStatsFromFirebase();
 
     let nav = 0, dev = 0, rev = 0;
@@ -86,51 +72,37 @@ async function load() {
 
     if (loc && cloud) {
       nav = Math.max(loc.navigation || 0, cloud.navigation || 0);
-      dev = Math.max(loc.devoirs    || 0, cloud.devoirs   || 0);
-      rev = Math.max(loc.revisions  || 0, cloud.revisions || 0);
-      // Fusion matière par matière pour ne perdre aucun temps
-      // présent uniquement dans Firebase ou uniquement en local.
+      dev = Math.max(loc.devoirs || 0, cloud.devoirs || 0);
+      rev = Math.max(loc.revisions || 0, cloud.revisions || 0);
       const cloudMatieres = cloud.parMatiere || {};
       const localMatieres = loc.parMatiere || {};
-      const matieres = new Set([
-        ...Object.keys(cloudMatieres),
-        ...Object.keys(localMatieres),
-      ]);
-
+      const matieres = new Set([...Object.keys(cloudMatieres), ...Object.keys(localMatieres)]);
       parMatiere = {};
       for (const matiere of matieres) {
         const cloudM = cloudMatieres[matiere] || {};
         const localM = localMatieres[matiere] || {};
-
         const revision = Math.max(cloudM.revision || 0, localM.revision || 0);
         const devoir = Math.max(cloudM.devoir || 0, localM.devoir || 0);
         const navigation = Math.max(cloudM.navigation || 0, localM.navigation || 0);
-
-        parMatiere[matiere] = {
-          revision,
-          devoir,
-          navigation,
-          total: revision + devoir + navigation,
-        };
+        parMatiere[matiere] = { revision, devoir, navigation, total: revision + devoir + navigation };
       }
     } else if (loc) {
       nav = loc.navigation || 0;
-      dev = loc.devoirs    || 0;
-      rev = loc.revisions  || 0;
+      dev = loc.devoirs || 0;
+      rev = loc.revisions || 0;
       parMatiere = loc.parMatiere || {};
     } else if (cloud) {
-      nav = cloud.navigation     || 0;
-      dev = cloud.devoirs   || 0;
+      nav = cloud.navigation || 0;
+      dev = cloud.devoirs || 0;
       rev = cloud.revisions || 0;
       parMatiere = cloud.parMatiere || {};
     }
 
     stats.navigation = nav;
-    stats.devoirs    = dev;
-    stats.revisions  = rev;
-    stats.global     = nav + dev + rev;
+    stats.devoirs = dev;
+    stats.revisions = rev;
+    stats.global = nav + dev + rev;
     stats.parMatiere = parMatiere;
-    // Préserver la session active lors d'un simple rechargement des statistiques.
     await save();
     loadedUserId = uid;
     loaded = true;
@@ -141,18 +113,14 @@ async function load() {
 }
 
 async function save() {
-  if (saveInProgress) {
-    await saveInProgress;
-  }
+  if (saveInProgress) await saveInProgress;
 
   const operation = (async () => {
     try {
       const user = auth.currentUser;
       if (!user) return;
-
       const uid = user.uid;
       const k = `${TIME_KEY}_${uid}`;
-
       const data = {
         navigation: stats.navigation,
         devoirs: stats.devoirs,
@@ -160,12 +128,8 @@ async function save() {
         global: stats.global,
         parMatiere: stats.parMatiere,
       };
-
       await SecureStore.setItemAsync(k, JSON.stringify(data));
-
-      // Ne jamais envoyer les données d'un autre compte Firebase.
       if (auth.currentUser?.uid !== uid) return;
-
       await saveTimeStatsToFirebase({
         totalApp: data.global,
         totalRevisions: data.revisions,
@@ -179,16 +143,12 @@ async function save() {
   })();
 
   saveInProgress = operation;
-
   try {
     await operation;
   } finally {
-    if (saveInProgress === operation) {
-      saveInProgress = null;
-    }
+    if (saveInProgress === operation) saveInProgress = null;
   }
 }
-
 
 export async function startTimeTracking(
   type: 'revision' | 'devoir' | 'navigation',
@@ -213,49 +173,62 @@ export async function stopAndRestartNavigation() {
 }
 
 async function _flush() {
-  if (!stats.currentSession.startTime) return;
-  const duration = (Date.now() - stats.currentSession.startTime) / 60000;
-  const { type, matiere } = stats.currentSession;
-
-  if (duration >= 0.033) {
-    if (type === 'navigation') stats.navigation += duration;
-    else if (type === 'revision') stats.revisions += duration;
-    else if (type === 'devoir')   stats.devoirs   += duration;
-
-    stats.global = stats.navigation + stats.revisions + stats.devoirs;
-
-    if (matiere && type !== 'navigation') {
-      if (!stats.parMatiere[matiere]) {
-        stats.parMatiere[matiere] = { revision: 0, devoir: 0, navigation: 0, total: 0 };
-      }
-      stats.parMatiere[matiere][type as 'revision' | 'devoir'] += duration;
-      stats.parMatiere[matiere].total += duration;
-    }
-    await save();
+  if (flushInProgress) {
+    await flushInProgress;
+    return;
   }
-  stats.currentSession = { startTime: null, type: null, matiere: null };
+  if (!stats.currentSession.startTime) return;
+
+  const operation = (async () => {
+    // Snapshot AND clear the session before awaiting network/storage work.
+    // This makes stop/cleanup/background calls idempotent and prevents double counting.
+    const session = stats.currentSession;
+    stats.currentSession = { startTime: null, type: null, matiere: null };
+
+    const duration = (Date.now() - session.startTime!) / 60000;
+    const { type, matiere } = session;
+
+    if (duration >= 0.033) {
+      if (type === 'navigation') stats.navigation += duration;
+      else if (type === 'revision') stats.revisions += duration;
+      else if (type === 'devoir') stats.devoirs += duration;
+
+      stats.global = stats.navigation + stats.revisions + stats.devoirs;
+
+      if (matiere && type !== 'navigation') {
+        if (!stats.parMatiere[matiere]) {
+          stats.parMatiere[matiere] = { revision: 0, devoir: 0, navigation: 0, total: 0 };
+        }
+        stats.parMatiere[matiere][type as 'revision' | 'devoir'] += duration;
+        stats.parMatiere[matiere].total += duration;
+      }
+      await save();
+    }
+  })();
+
+  flushInProgress = operation;
+  try {
+    await operation;
+  } finally {
+    if (flushInProgress === operation) flushInProgress = null;
+  }
 }
 
-// ✅ FIX: Inclut la session en cours dans les totaux affichés
 export async function getTimeStats() {
   if (!loaded) await load();
-
-  // Durée de la session en cours (pas encore flushée)
   let liveElapsed = 0;
   if (stats.currentSession.startTime && stats.currentSession.type) {
     liveElapsed = (Date.now() - stats.currentSession.startTime) / 60000;
   }
-
   const liveNav = stats.currentSession.type === 'navigation' ? liveElapsed : 0;
-  const liveDev = stats.currentSession.type === 'devoir'     ? liveElapsed : 0;
-  const liveRev = stats.currentSession.type === 'revision'   ? liveElapsed : 0;
-
+  const liveDev = stats.currentSession.type === 'devoir' ? liveElapsed : 0;
+  const liveRev = stats.currentSession.type === 'revision' ? liveElapsed : 0;
   return {
-    navigation:     stats.navigation + liveNav,
-    devoirs:        stats.devoirs    + liveDev,
-    revisions:      stats.revisions  + liveRev,
-    global:         stats.global     + liveElapsed,
-    parMatiere:     stats.parMatiere,
+    navigation: stats.navigation + liveNav,
+    devoirs: stats.devoirs + liveDev,
+    revisions: stats.revisions + liveRev,
+    global: stats.global + liveElapsed,
+    parMatiere: stats.parMatiere,
     currentSession: stats.currentSession,
   };
 }
@@ -263,14 +236,14 @@ export async function getTimeStats() {
 export async function getTimeSummary() {
   const s = await getTimeStats();
   return {
-    navigation:         formatTime(s.navigation),
-    devoirs:            formatTime(s.devoirs),
-    revisions:          formatTime(s.revisions),
-    global:             formatTime(s.global),
-    globalMinutes:      s.global,
-    navigationMinutes:  s.navigation,
-    devoirsMinutes:     s.devoirs,
-    revisionsMinutes:   s.revisions,
+    navigation: formatTime(s.navigation),
+    devoirs: formatTime(s.devoirs),
+    revisions: formatTime(s.revisions),
+    global: formatTime(s.global),
+    globalMinutes: s.global,
+    navigationMinutes: s.navigation,
+    devoirsMinutes: s.devoirs,
+    revisionsMinutes: s.revisions,
   };
 }
 
@@ -278,10 +251,10 @@ export async function getTimePerSubject() {
   if (!loaded) await load();
   return Object.entries(stats.parMatiere || {}).map(([matiere, data]) => ({
     matiere,
-    revision:   data.revision   || 0,
-    devoir:     data.devoir     || 0,
+    revision: data.revision || 0,
+    devoir: data.devoir || 0,
     navigation: data.navigation || 0,
-    total:      data.total      || 0,
+    total: data.total || 0,
   })).sort((a, b) => b.total - a.total);
 }
 
