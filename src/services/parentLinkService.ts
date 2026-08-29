@@ -1,5 +1,6 @@
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { app, auth, db, doc, getDoc, setDoc, serverTimestamp } from './firebaseConfig';
+import { setDoc, serverTimestamp } from 'firebase/firestore';
+import { app, auth, db, doc, getDoc } from './firebaseConfig';
 
 export interface EnfantLie {
   uid: string;
