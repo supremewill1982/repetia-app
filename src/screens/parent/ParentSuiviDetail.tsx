@@ -1,13 +1,27 @@
-import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
 import { getEnfantsLies, getSessionsEnfant } from '../../services/parentService';
 
 export default function ParentSuiviDetail({ route }: any) {
-  const { colors } = useTheme(); const [loading,setLoading]=useState(true); const [enfant,setEnfant]=useState<any>(route?.params?.enfant||null); const [sessions,setSessions]=useState<any[]>([]);
-  const charger=useCallback(async()=>{setLoading(true);try{const enfants=await getEnfantsLies();const actif=enfant?enfants.find(e=>e.uid===enfant.uid)||enfant:enfants[0]||null;setEnfant(actif);if(actif)setSessions(await getSessionsEnfant(actif.uid));}catch(e){console.error(e)}finally{setLoading(false)}},[enfant]);
+  const { colors } = useTheme();
+  const [loading,setLoading]=useState(true);
+  const [enfant,setEnfant]=useState<any>(route?.params?.enfant||null);
+  const enfantRef=useRef<any>(route?.params?.enfant||null);
+  const [sessions,setSessions]=useState<any[]>([]);
+  const charger=useCallback(async()=>{
+    setLoading(true);
+    try{
+      const enfants=await getEnfantsLies();
+      const uid=enfantRef.current?.uid;
+      const actif=(uid?enfants.find(e=>e.uid===uid):null)||enfants[0]||null;
+      enfantRef.current=actif;
+      setEnfant(actif);
+      if(actif)setSessions(await getSessionsEnfant(actif.uid)); else setSessions([]);
+    }catch(e){console.error('[ParentSuiviDetail] chargement:',e)}finally{setLoading(false)}
+  },[]);
   useFocusEffect(useCallback(()=>{charger()},[charger]));
   const notes=sessions.map(s=>Number(s.note??s.score??(s.scoreTotal&&s.scoreMax?(s.scoreTotal/s.scoreMax)*20:NaN))).filter(n=>Number.isFinite(n)&&n>0);
   const moyenne=notes.length?notes.reduce((a,b)=>a+b,0)/notes.length:0;
