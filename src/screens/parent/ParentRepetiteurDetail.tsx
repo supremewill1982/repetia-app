@@ -8,7 +8,17 @@ import { collection, getDocs, query, where } from 'firebase/firestore';
 
 export default function ParentRepetiteurDetailScreen({ route, navigation }: any) {
   const { colors }=useTheme(); const [tuteur,setTuteur]=useState<Tuteur|null>(route?.params?.tuteur||null); const [loading,setLoading]=useState(!tuteur); const [coursEnLigne,setCoursEnLigne]=useState(0); const id=route?.params?.tuteurId||route?.params?.tuteur?.uid;
-  useEffect(()=>{if(!id)return;(async()=>{setLoading(!tuteur);try{const [profil,cours]=await Promise.all([getTuteur(id),getDocs(query(collection(db,'contributions'),where('auteur.userId','==',id),where('statut','==','validé')))]);if(profil)setTuteur(prev=>({...prev,...profil}));setCoursEnLigne(cours.size);}catch(e){console.error(e);}finally{setLoading(false);}})();},[id]);
+  useEffect(()=>{
+    if(!id)return;
+    setLoading(!tuteur);
+    getTuteur(id)
+      .then(profil=>{if(profil)setTuteur(prev=>({...prev,...profil}));})
+      .catch(e=>console.error('getTuteur:',e))
+      .finally(()=>setLoading(false));
+    getDocs(query(collection(db,'contributions'),where('auteur.userId','==',id),where('statut','==','validé')))
+      .then(cours=>setCoursEnLigne(cours.size))
+      .catch(e=>console.error('coursEnLigne:',e));
+  },[id]);
   if(loading)return <View style={[styles.center,{backgroundColor:colors.background}]}><ActivityIndicator size="large" color={colors.primary}/></View>;
   if(!tuteur)return <View style={[styles.center,{backgroundColor:colors.background}]}><Text style={{color:colors.text}}>Profil introuvable.</Text><TouchableOpacity onPress={()=>navigation.goBack()}><Text style={{color:colors.primary,marginTop:10}}>Retour</Text></TouchableOpacity></View>;
   return <ScrollView style={[styles.container,{backgroundColor:colors.background}]} contentContainerStyle={styles.content}>
