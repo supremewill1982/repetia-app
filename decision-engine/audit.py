@@ -9,6 +9,7 @@ class DecisionAudit:
     request_id: Optional[str]
     requester: Optional[str]
     engine_version: str
+    classifier_version: str
     level: str
     risk: int
     human: bool
@@ -28,6 +29,7 @@ def audit_response(request_id: Optional[str], response, requester: Optional[str]
         request_id=request_id,
         requester=requester,
         engine_version=response.engine_version,
+        classifier_version=response.classifier_version,
         level=response.level,
         risk=response.risk,
         human=response.human,
