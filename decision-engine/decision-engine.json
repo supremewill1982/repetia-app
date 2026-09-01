@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "policy": {
+    "debate": "conditional",
+    "arbitration": "conditional",
+    "test_validation": "mandatory",
+    "human_escalation": "critical_only"
+  },
+  "difficulty": {
+    "simple": {
+      "max_score": 3,
+      "agents": [
+        "coder"
+      ]
+    },
+    "medium": {
+      "max_score": 6,
+      "agents": [
+        "coder",
+        "reviewer"
+      ]
+    },
+    "complex": {
+      "max_score": 10,
+      "agents": [
+        "coder",
+        "reviewer"
+      ]
+    }
+  },
+  "risk": {
+    "low": 2,
+    "medium": 5,
+    "high": 8,
+    "critical": 10
+  },
+  "escalation": {
+    "review_required_at_risk": 5,
+    "debate_required_at_risk": 7,
+    "arbitration_after_failed_rounds": 2,
+    "human_required_at_risk": 10
+  }
+}
