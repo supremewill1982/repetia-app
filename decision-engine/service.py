@@ -17,6 +17,7 @@ except ImportError:
 MAX_DESCRIPTION_LENGTH = 20_000
 MAX_REQUESTER_LENGTH = 256
 MAX_REQUEST_ID_LENGTH = 256
+MAX_TENANT_ID_LENGTH = 128
 
 
 def _request_from_payload(payload: Mapping[str, Any]) -> DecisionRequest:
@@ -43,10 +44,13 @@ def _request_from_payload(payload: Mapping[str, Any]) -> DecisionRequest:
 
     requester = payload.get("requester")
     request_id = payload.get("request_id")
+    tenant_id = payload.get("tenant_id")
     if requester is not None and (not isinstance(requester, str) or len(requester) > MAX_REQUESTER_LENGTH):
         raise ValueError("requester must be a string or null within the maximum length")
     if request_id is not None and (not isinstance(request_id, str) or len(request_id) > MAX_REQUEST_ID_LENGTH):
         raise ValueError("request_id must be a string or null within the maximum length")
+    if tenant_id is not None and (not isinstance(tenant_id, str) or not tenant_id.strip() or len(tenant_id) > MAX_TENANT_ID_LENGTH):
+        raise ValueError("tenant_id must be a non-empty string or null within the maximum length")
 
     return DecisionRequest(
         description=description,
@@ -55,6 +59,7 @@ def _request_from_payload(payload: Mapping[str, Any]) -> DecisionRequest:
         failed_debate_rounds=failed_rounds,
         requester=requester,
         request_id=request_id,
+        tenant_id=tenant_id,
     )
 
 
@@ -69,5 +74,5 @@ def evaluate_payload_with_audit(payload: Mapping[str, Any]) -> dict[str, Any]:
     response = evaluate(request)
     return {
         "decision": response.to_dict(),
-        "audit": audit_response(request.request_id, response, request.requester).to_dict(),
+        "audit": audit_response(request.request_id, response, request.requester, request.tenant_id).to_dict(),
     }
