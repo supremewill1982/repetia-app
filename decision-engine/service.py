@@ -69,5 +69,5 @@ def evaluate_payload_with_audit(payload: Mapping[str, Any]) -> dict[str, Any]:
     response = evaluate(request)
     return {
         "decision": response.to_dict(),
-        "audit": audit_response(request.request_id, response).to_dict(),
+        "audit": audit_response(request.request_id, response, request.requester).to_dict(),
     }
