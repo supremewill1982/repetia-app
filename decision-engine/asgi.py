@@ -7,7 +7,10 @@ network policy at the deployment gateway for production deployments.
 import json
 from typing import Any, Callable, Dict, List
 
-from service import evaluate_payload, evaluate_payload_with_audit
+try:
+    from .service import evaluate_payload, evaluate_payload_with_audit
+except ImportError:
+    from service import evaluate_payload, evaluate_payload_with_audit
 
 MAX_BODY_BYTES = 256 * 1024
 
