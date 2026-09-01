@@ -1,7 +1,10 @@
 """Public integration boundary for the reusable Decision Engine."""
-from .contracts import DecisionRequest, DecisionResponse
-from .classifier_v5 import classify
-from .decision import decide
+try:
+    from .contracts import DecisionRequest, DecisionResponse
+    from .decision import decide
+except ImportError:
+    from contracts import DecisionRequest, DecisionResponse
+    from decision import decide
 
 
 def evaluate(request: DecisionRequest) -> DecisionResponse:
