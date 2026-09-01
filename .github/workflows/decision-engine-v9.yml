@@ -21,3 +21,6 @@ jobs:
           python-version: '3.x'
       - name: V9 adversarial suite
         run: python tests/run_v9.py
+      - name: Contract and engine tests
+        run: |
+          python -m unittest test_contracts.py test_engine.py
