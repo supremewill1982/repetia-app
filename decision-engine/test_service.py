@@ -26,6 +26,14 @@ class ServiceBoundaryTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             evaluate_payload({"description": "review a report", "failed_debate_rounds": -1})
 
+    def test_payload_rejects_non_boolean_disagreement(self):
+        with self.assertRaises(ValueError):
+            evaluate_payload({"description": "review a report", "disagreement": "yes"})
+
+    def test_payload_rejects_oversized_description(self):
+        with self.assertRaises(ValueError):
+            evaluate_payload({"description": "x" * 20_001})
+
 
 if __name__ == "__main__":
     unittest.main()
