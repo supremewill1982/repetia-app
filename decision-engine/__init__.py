@@ -2,6 +2,12 @@
 
 from .contracts import DecisionRequest, DecisionResponse
 from .engine import evaluate
-from .service import evaluate_payload
+from .service import evaluate_payload, evaluate_payload_with_audit
 
-__all__ = ["DecisionRequest", "DecisionResponse", "evaluate", "evaluate_payload"]
+__all__ = [
+    "DecisionRequest",
+    "DecisionResponse",
+    "evaluate",
+    "evaluate_payload",
+    "evaluate_payload_with_audit",
+]
