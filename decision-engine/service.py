@@ -5,8 +5,12 @@ classifier directly. No external action is executed here.
 """
 from typing import Any, Mapping
 
-from .contracts import DecisionRequest
-from .engine import evaluate
+try:
+    from .contracts import DecisionRequest
+    from .engine import evaluate
+except ImportError:
+    from contracts import DecisionRequest
+    from engine import evaluate
 
 
 def evaluate_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
@@ -26,12 +30,19 @@ def evaluate_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
     if not isinstance(failed_rounds, int) or isinstance(failed_rounds, bool) or failed_rounds < 0:
         raise ValueError("failed_debate_rounds must be a non-negative integer")
 
+    requester = payload.get("requester")
+    request_id = payload.get("request_id")
+    if requester is not None and not isinstance(requester, str):
+        raise ValueError("requester must be a string or null")
+    if request_id is not None and not isinstance(request_id, str):
+        raise ValueError("request_id must be a string or null")
+
     request = DecisionRequest(
         description=description,
         context=dict(context),
         disagreement=bool(payload.get("disagreement", False)),
         failed_debate_rounds=failed_rounds,
-        requester=payload.get("requester"),
-        request_id=payload.get("request_id"),
+        requester=requester,
+        request_id=request_id,
     )
     return evaluate(request).to_dict()
