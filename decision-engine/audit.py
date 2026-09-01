@@ -8,6 +8,7 @@ from typing import Any, Dict, Optional
 class DecisionAudit:
     request_id: Optional[str]
     requester: Optional[str]
+    tenant_id: Optional[str]
     engine_version: str
     classifier_version: str
     level: str
@@ -23,11 +24,17 @@ class DecisionAudit:
         return asdict(self)
 
 
-def audit_response(request_id: Optional[str], response, requester: Optional[str] = None) -> DecisionAudit:
+def audit_response(
+    request_id: Optional[str],
+    response,
+    requester: Optional[str] = None,
+    tenant_id: Optional[str] = None,
+) -> DecisionAudit:
     """Create an audit record without persisting the original request payload."""
     return DecisionAudit(
         request_id=request_id,
         requester=requester,
+        tenant_id=tenant_id,
         engine_version=response.engine_version,
         classifier_version=response.classifier_version,
         level=response.level,
