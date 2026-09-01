@@ -1,7 +1,6 @@
 import unittest
 
-from contracts import DecisionRequest, DecisionResponse
-from engine import evaluate
+from decision_engine import DecisionRequest, DecisionResponse, evaluate
 
 
 class PublicApiTests(unittest.TestCase):
