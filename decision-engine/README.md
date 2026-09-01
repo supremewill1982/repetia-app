@@ -1,33 +1,37 @@
-# Decision Engine — Prototype
+# Decision Engine
 
-Moteur adaptatif du système multi-agents.
+Reusable, policy-driven decision and governance engine for agentic applications.
 
-Objectif :
+## Boundary
 
-1. Évaluer la difficulté d'une tâche.
-2. Évaluer son niveau de risque.
-3. Choisir automatiquement les agents nécessaires.
-4. Éviter les débats inutiles.
-5. Déclencher un débat uniquement lorsqu'il est justifié.
-6. Faire intervenir un arbitre uniquement en cas de désaccord persistant.
-7. Utiliser les tests comme validation finale.
+The engine **decides; it does not execute**. A consuming application submits a `DecisionRequest` and receives a `DecisionResponse` describing the governance path.
 
-Principe :
+```python
+from decision_engine import DecisionRequest, evaluate
 
-DIFFICULTÉ × RISQUE
-        ↓
-AGENTS NÉCESSAIRES
-        ↓
-ANALYSE
-        ↓
-DÉSACCORD ?
-   ├── NON → VALIDATION
-   └── OUI → DÉBAT
-                 ↓
-             RÉSOLUTION
-                 ↓
-             TESTS
-                 ↓
-          PASS / NOUVEAU CYCLE
+response = evaluate(DecisionRequest(description="review a document"))
+```
 
-Ce prototype ne modifie aucun fichier du projet principal.
+## Public API
+
+- `DecisionRequest`: stable input contract.
+- `DecisionResponse`: stable output contract.
+- `evaluate(request)`: public evaluation entry point.
+
+Consumers should depend only on this public API, not legacy classifier filenames or implementation details.
+
+## Governance
+
+The engine can require additional agents, debate, arbitration, or human approval. It never performs the requested external action itself.
+
+## Compatibility
+
+V9 remains the reference classification behavior. The package boundary is versioned independently so future products can integrate without importing legacy classifier filenames.
+
+## Development
+
+```bash
+python -m pip install -e .
+python -m unittest test_contracts.py test_engine.py test_public_api.py
+python tests/run_v9.py
+```
