@@ -9,4 +9,5 @@ description = "Reusable, policy-driven decision and governance engine for agenti
 requires-python = ">=3.10"
 
 [tool.setuptools]
-py-modules = ["contracts", "decision", "engine", "classifier_v5"]
+packages = ["decision_engine"]
+package-dir = {"decision_engine" = "."}
