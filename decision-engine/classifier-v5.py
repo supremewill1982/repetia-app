@@ -5,7 +5,7 @@ import re
 BASE = Path(__file__).parent
 POLICY = json.loads((BASE / "policies-v5.json").read_text())
 
-TEXT=("corriger le titre","changer le titre","modifier le titre","corriger une faute","corriger une faute de frappe","corriger l'orthographe","faute de frappe","changer le texte","modifier le texte","corriger une phrase","modifier une phrase","changer le libellé","modifier le libellé","corriger le message","corriger un message","modifier le message","modifier un message","texte affiché","formulation visible","présentation de la page","présentation uniquement","simple changement de texte","corriger la page","modifier la page","corriger le mot","modifier le mot","changer le mot","modifier uniquement la présentation","présentation de l'écran","texte à corriger")
+TEXT=("corriger le titre","changer le titre","modifier le titre","corriger une faute","corriger une faute de frappe","corriger l'orthographe","faute de frappe","changer le texte","modifier le texte","corriger le texte","modifier une phrase","corriger une phrase","changer le libellé","modifier le libellé","corriger le message","corriger un message","modifier le message","modifier un message","texte affiché","formulation visible","présentation de la page","présentation uniquement","simple changement de texte","corriger la page","modifier la page","changer la page","corriger le mot","modifier le mot","changer le mot","modifier uniquement la présentation","présentation de l'écran","texte à corriger")
 MEDIUM=("bug login","bug de connexion","formulaire cassé","écran cassé","nouvelle fonctionnalité","fonctionnalité","connexion à corriger","navigation à corriger","toucher au backend","améliorer le paiement","corriger le login","modifier le formulaire","ajouter un bouton","changer le formulaire","tester sans appliquer","tester le système")
 OBJECTS=("architecture","backend","frontend","base de données","base","db","données","stockage","authentification","auth","autorisation","sécurité","paiement","migration","synchronisation","services essentiels","plusieurs services","plusieurs composants","plusieurs couches","couches fondamentales","comptes utilisateurs","logique interne","fonctionnement interne","mécanisme","système central","système de connexion")
 COMPLEX=("repenser entièrement","repenser complètement","repenser la façon dont","changer profondément","modifier profondément","remplacer complètement","remplacer ce qui permet","revoir le système qui","réorganiser profondément","faire fonctionner ensemble plusieurs","modifier plusieurs couches fondamentales","repenser complètement la gestion","changer le fonctionnement interne","modifier le fonctionnement interne","changer la façon dont les informations","revoir la logique interne","modifier le comportement interne","faire en sorte que les utilisateurs","supprimer ce qui est actuellement utilisé","changer la communication entre","communication entre l'application et le serveur","remplacer le système central qui","refonte complète","refonte totale","refonte profonde","refactorisation","refactor","auth à revoir","db à modifier","base de données à modifier","backend à modifier","backend à revoir","architecture à revoir","architecture à modifier","migration réelle","déploiement réel","déploiement en production")
@@ -33,6 +33,7 @@ def classify(task:str):
         active_real=_active(text,REAL)
         destructive=has_any(text,("supprimer","détruire","faire disparaître")) and _action(text)
         local_complex_test=(has_any(text,("tester une ","tester le ","tester ","construire")) and has_any(text,OBJECTS) and has_any(text,("sans déployer","sans la déployer","sans l'appliquer","sans appliquer")))
+        # Explicit protection can downgrade only the protected operation, not an independently requested technical action.
         if compound and (dangerous or irreversible or (technical and destructive)): level="complex"
         elif active_real and _action(text): level="complex"
         elif local_complex_test: level="complex"
@@ -51,10 +52,13 @@ def classify(task:str):
         if active_real and _action(text) and not protected: human,debate=True,True
         if active_real and destructive: level,debate,human="complex",True,True
         if compound and destructive and active_real: level,debate,human="complex",True,True
+        # A compound destructive data/account change is human-gated even without an explicit production marker.
         if compound and destructive and has_any(text,("données","comptes")): level,debate,human="complex",True,True
         if local_complex_test and not active_real: human,debate=False,True
         if compound and dangerous: level,debate,human="complex",True,True
+        # Explicitly harmless compound wording must not inherit a generic medium score.
         if has_any(text,("aucun changement réel","aucune modification réelle")) and not active_real and not dangerous and not irreversible: level,debate,human="simple",False,False
+        # A compound technical task involving a DB/data change is complex but is not automatically human-gated unless live/destructive.
         if compound and technical and not active_real and not destructive and not dangerous and not irreversible: level="complex"
     difficulty={"simple":1,"medium":4,"complex":8}[level]
     risk=10 if human else (7 if debate else (4 if level=="medium" else 1))
