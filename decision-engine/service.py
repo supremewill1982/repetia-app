@@ -6,15 +6,16 @@ classifier directly. No external action is executed here.
 from typing import Any, Mapping
 
 try:
+    from .audit import audit_response
     from .contracts import DecisionRequest
     from .engine import evaluate
 except ImportError:
+    from audit import audit_response
     from contracts import DecisionRequest
     from engine import evaluate
 
 
-def evaluate_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
-    """Validate a transport payload and return a serializable decision."""
+def _request_from_payload(payload: Mapping[str, Any]) -> DecisionRequest:
     if not isinstance(payload, Mapping):
         raise TypeError("payload must be a mapping")
 
@@ -37,7 +38,7 @@ def evaluate_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
     if request_id is not None and not isinstance(request_id, str):
         raise ValueError("request_id must be a string or null")
 
-    request = DecisionRequest(
+    return DecisionRequest(
         description=description,
         context=dict(context),
         disagreement=bool(payload.get("disagreement", False)),
@@ -45,4 +46,18 @@ def evaluate_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
         requester=requester,
         request_id=request_id,
     )
-    return evaluate(request).to_dict()
+
+
+def evaluate_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
+    """Validate a transport payload and return a serializable decision."""
+    return evaluate(_request_from_payload(payload)).to_dict()
+
+
+def evaluate_payload_with_audit(payload: Mapping[str, Any]) -> dict[str, Any]:
+    """Evaluate a payload and return the decision together with its audit record."""
+    request = _request_from_payload(payload)
+    response = evaluate(request)
+    return {
+        "decision": response.to_dict(),
+        "audit": audit_response(request.request_id, response).to_dict(),
+    }
