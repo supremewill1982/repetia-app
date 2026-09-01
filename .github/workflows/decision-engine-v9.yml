@@ -23,5 +23,5 @@ jobs:
         run: python -m pip install -e .
       - name: V9 adversarial suite
         run: python tests/run_v9.py
-      - name: Contract, engine and audit and cross-domain tests
-        run: python -m unittest test_contracts.py test_engine.py test_public_api.py test_audit.py test_cross_domain.py
+      - name: Contract, engine, audit, service and cross-domain tests
+        run: python -m unittest test_contracts.py test_engine.py test_public_api.py test_audit.py test_service.py test_cross_domain.py
