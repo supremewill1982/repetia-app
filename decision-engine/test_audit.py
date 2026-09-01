@@ -11,11 +11,13 @@ class AuditTests(unittest.TestCase):
             debate=True, arbitration=True, human=True, uncertainty=True,
             reason="human approval required",
         )
-        record = audit_response("req-1", response)
+        record = audit_response("req-1", response, "operator-1")
         data = record.to_dict()
         self.assertEqual(data["request_id"], "req-1")
+        self.assertEqual(data["requester"], "operator-1")
         self.assertEqual(data["risk"], 5)
         self.assertTrue(data["human"])
+        self.assertEqual(data["reason"], "human approval required")
         self.assertTrue(data["timestamp"])
 
 
