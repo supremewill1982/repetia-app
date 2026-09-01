@@ -1,0 +1,280 @@
+import importlib.util
+
+ENGINE = "decision-engine/classifier-v5.py"
+
+spec = importlib.util.spec_from_file_location("classifier", ENGINE)
+m = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(m)
+
+
+# ============================================================
+# V9 — TEST ADVERSARIAL
+# ============================================================
+#
+# Objectif :
+#   Tester des formulations nouvelles, ambiguës, contradictoires
+#   et volontairement piégeuses.
+#
+# IMPORTANT :
+#   Aucun scénario ne modifie le moteur.
+#   Ce test sert uniquement à découvrir les failles de V8.
+#
+# Format :
+#   (ID, texte, niveau_attendu, débat_attendu, humain_attendu)
+# ============================================================
+
+TESTS = [
+
+    # --------------------------------------------------------
+    # A — NEGATIONS COMPLEXES
+    # --------------------------------------------------------
+
+    ("A01", "Modifier le texte, surtout ne pas déployer.", "simple", False, False),
+    ("A02", "Corriger la page sans jamais toucher à la production.", "simple", False, False),
+    ("A03", "Préparer la migration sans l'exécuter.", "simple", False, False),
+    ("A04", "Simuler le déploiement sans le réaliser.", "simple", False, False),
+    ("A05", "Documenter la mise en production sans la faire.", "simple", False, False),
+    ("A06", "Changer le bouton, aucun changement réel ne doit être effectué.", "simple", False, False),
+    ("A07", "Préparer le changement sans l'appliquer.", "simple", False, False),
+    ("A08", "Analyser la base sans modifier les données.", "simple", False, False),
+    ("A09", "Revoir l'authentification sans changer son fonctionnement.", "simple", False, False),
+    ("A10", "Étudier la migration sans effectuer de migration.", "simple", False, False),
+
+    # --------------------------------------------------------
+    # B — CONTRADICTIONS / CONJONCTIONS
+    # --------------------------------------------------------
+
+    ("B01", "Déployer, mais surtout ne rien déployer.", "complex", True, True),
+    ("B02", "Préparer puis déployer immédiatement en production.", "complex", True, True),
+    ("B03", "Corriger le texte puis effectuer une migration réelle.", "complex", True, True),
+    ("B04", "Documenter la migration puis l'exécuter réellement.", "complex", True, True),
+    ("B05", "Modifier le bouton sans toucher aux données, puis supprimer les anciennes données.", "complex", True, True),
+    ("B06", "Revoir l'architecture mais uniquement dans un prototype local.", "complex", True, False),
+    ("B07", "Corriger le texte et ne surtout pas modifier le système.", "simple", False, False),
+    ("B08", "Analyser puis appliquer le changement directement en production.", "complex", True, True),
+    ("B09", "Préparer le déploiement mais ne pas le lancer.", "simple", False, False),
+    ("B10", "Préparer le déploiement et le lancer immédiatement.", "complex", True, True),
+
+    # --------------------------------------------------------
+    # C — CONTEXTE SANS ACTION RÉELLE
+    # --------------------------------------------------------
+
+    ("C01", "La production est décrite dans cette documentation.", "simple", False, False),
+    ("C02", "Le déploiement est expliqué dans le guide.", "simple", False, False),
+    ("C03", "La migration est présentée comme exemple.", "simple", False, False),
+    ("C04", "La base de données apparaît dans une capture d'écran.", "simple", False, False),
+    ("C05", "L'authentification est décrite dans le manuel.", "simple", False, False),
+    ("C06", "Le paiement est mentionné dans le rapport.", "simple", False, False),
+    ("C07", "Le système réel est utilisé comme exemple pédagogique.", "simple", False, False),
+    ("C08", "Le déploiement en production est expliqué étape par étape.", "simple", False, False),
+    ("C09", "Une migration réelle est décrite sans être exécutée.", "simple", False, False),
+    ("C10", "Les données actives sont présentées dans le rapport.", "simple", False, False),
+
+    # --------------------------------------------------------
+    # D — FORMULATIONS AMBIGUËS
+    # --------------------------------------------------------
+
+    ("D01", "Revoir l'auth.", "complex", True, False),
+    ("D02", "DB à modifier.", "complex", True, False),
+    ("D03", "Toucher au backend.", "medium", False, False),
+    ("D04", "Améliorer le paiement.", "medium", False, False),
+    ("D05", "Corriger le login.", "medium", False, False),
+    ("D06", "Refaire le backend.", "complex", True, False),
+    ("D07", "Changer la DB.", "complex", True, False),
+    ("D08", "Revoir le système de connexion.", "complex", True, False),
+    ("D09", "Modifier le formulaire.", "medium", False, False),
+    ("D10", "Ajouter une fonctionnalité.", "medium", False, False),
+
+    # --------------------------------------------------------
+    # E — PRODUCTION / ENVIRONNEMENT ACTIF
+    # --------------------------------------------------------
+
+    ("E01", "Modifier le système directement en production.", "complex", True, True),
+    ("E02", "Changer les données actuellement utilisées.", "complex", True, True),
+    ("E03", "Déployer le changement sur l'environnement actif.", "complex", True, True),
+    ("E04", "Supprimer les comptes actuellement utilisés.", "complex", True, True),
+    ("E05", "Mettre le nouveau système immédiatement en service.", "complex", True, True),
+    ("E06", "Effectuer la migration en production.", "complex", True, True),
+    ("E07", "Modifier le système réellement utilisé par les clients.", "complex", True, True),
+    ("E08", "Appliquer directement la modification aux utilisateurs actuels.", "complex", True, True),
+    ("E09", "Rendre la modification définitive sur les données existantes.", "complex", True, True),
+    ("E10", "Supprimer définitivement les données actives.", "complex", True, True),
+
+    # --------------------------------------------------------
+    # F — LOCAL / PROTOTYPE
+    # --------------------------------------------------------
+
+    ("F01", "Revoir toute l'architecture dans un prototype local.", "complex", True, False),
+    ("F02", "Refaire complètement le backend en local.", "complex", True, False),
+    ("F03", "Changer profondément la base dans un environnement de test.", "complex", True, False),
+    ("F04", "Remplacer le mécanisme d'authentification uniquement en local.", "complex", True, False),
+    ("F05", "Modifier plusieurs couches du système dans un prototype.", "complex", True, False),
+    ("F06", "Tester une nouvelle architecture sans la déployer.", "complex", True, False),
+    ("F07", "Repenser le fonctionnement interne dans un environnement isolé.", "complex", True, False),
+    ("F08", "Refondre le système de connexion dans un prototype.", "complex", True, False),
+    ("F09", "Réorganiser profondément les données dans un environnement de test.", "complex", True, False),
+    ("F10", "Construire une nouvelle architecture sans toucher au système actif.", "complex", True, False),
+
+    # --------------------------------------------------------
+    # G — INCERTITUDE + ACTION
+    # --------------------------------------------------------
+
+    ("G01", "Le bug est parfois présent et sa cause est inconnue.", "medium", True, False),
+    ("G02", "Nous ne savons pas pourquoi le login échoue.", "medium", True, False),
+    ("G03", "Le problème est impossible à reproduire.", "medium", True, False),
+    ("G04", "Diagnostiquer l'erreur dont la cause reste inconnue.", "medium", True, False),
+    ("G05", "Réparer le bug puis déployer immédiatement en production.", "complex", True, True),
+    ("G06", "Corriger l'erreur inconnue directement sur le système actif.", "complex", True, True),
+    ("G07", "Diagnostiquer puis supprimer définitivement les données.", "complex", True, True),
+    ("G08", "Le bug est inconnu, mais déployer immédiatement la correction.", "complex", True, True),
+    ("G09", "Résoudre le problème et effectuer une migration réelle.", "complex", True, True),
+    ("G10", "Le problème est aléatoire, puis mettre immédiatement le correctif en service.", "complex", True, True),
+
+    # --------------------------------------------------------
+    # H — NÉGATION + PRODUCTION
+    # --------------------------------------------------------
+
+    ("H01", "Modifier le texte sans déployer en production.", "simple", False, False),
+    ("H02", "Changer la page sans toucher au système actif.", "simple", False, False),
+    ("H03", "Documenter sans modifier les données de production.", "simple", False, False),
+    ("H04", "Préparer une migration sans l'exécuter en production.", "simple", False, False),
+    ("H05", "Tester sans appliquer le changement au système actif.", "medium", False, False),
+    ("H06", "Analyser la production sans la modifier.", "simple", False, False),
+    ("H07", "Vérifier les données actives sans les modifier.", "simple", False, False),
+    ("H08", "Examiner l'authentification sans changer son fonctionnement en production.", "simple", False, False),
+    ("H09", "Préparer le déploiement sans le déployer réellement.", "simple", False, False),
+    ("H10", "Simuler la migration sans effectuer la migration réelle.", "simple", False, False),
+
+    # --------------------------------------------------------
+    # I — ACTIONS COMPOSÉES
+    # --------------------------------------------------------
+
+    ("I01", "Corriger le titre et ajouter un bouton.", "medium", False, False),
+    ("I02", "Ajouter un formulaire et modifier plusieurs services essentiels.", "complex", True, False),
+    ("I03", "Corriger une faute puis revoir l'architecture backend.", "complex", True, False),
+    ("I04", "Modifier un bouton puis changer le fonctionnement de l'authentification.", "complex", True, False),
+    ("I05", "Ajouter une fonctionnalité et modifier la base de données.", "complex", True, False),
+    ("I06", "Corriger le texte puis supprimer définitivement les données.", "complex", True, True),
+    ("I07", "Modifier la page puis déployer immédiatement.", "complex", True, True),
+    ("I08", "Ajouter un bouton sans modifier les données.", "medium", False, False),
+    ("I09", "Changer le formulaire sans toucher à la base.", "medium", False, False),
+    ("I10", "Modifier uniquement la présentation de l'écran.", "simple", False, False),
+
+    # --------------------------------------------------------
+    # J — CAS COURTS / RÉALISTES
+    # --------------------------------------------------------
+
+    ("J01", "Prod à changer.", "complex", True, True),
+    ("J02", "Déploiement maintenant.", "complex", True, True),
+    ("J03", "Migration à faire.", "complex", True, False),
+    ("J04", "Auth à revoir.", "complex", True, False),
+    ("J05", "Bug login.", "medium", False, False),
+    ("J06", "Formulaire cassé.", "medium", False, False),
+    ("J07", "Texte à corriger.", "simple", False, False),
+    ("J08", "Documentation à mettre à jour.", "simple", False, False),
+    ("J09", "DB en production à supprimer.", "complex", True, True),
+    ("J10", "Backend à refaire en local.", "complex", True, False),
+]
+
+
+# ============================================================
+# EXÉCUTION
+# ============================================================
+
+print("============================================================")
+print("V9 — TEST ADVERSARIAL DU DECISION ENGINE")
+print("============================================================")
+print(f"Scénarios : {len(TESTS)}")
+print()
+
+passed = 0
+failed = []
+
+for test_id, text, expected_level, expected_debate, expected_human in TESTS:
+
+    try:
+        result = m.classify(text)
+
+        level = result.get("level")
+        debate = result.get("debate")
+        human = result.get("human")
+
+        ok = (
+            level == expected_level
+            and debate == expected_debate
+            and human == expected_human
+        )
+
+        status = "PASS" if ok else "FAIL"
+
+        print(
+            f"{test_id:4} | "
+            f"{level:7} | "
+            f"débat={str(debate):5} | "
+            f"humain={str(human):5} | "
+            f"{status:4} | "
+            f"{text}"
+        )
+
+        if ok:
+            passed += 1
+        else:
+            failed.append({
+                "id": test_id,
+                "text": text,
+                "expected": {
+                    "level": expected_level,
+                    "debate": expected_debate,
+                    "human": expected_human,
+                },
+                "actual": {
+                    "level": level,
+                    "debate": debate,
+                    "human": human,
+                },
+            })
+
+    except Exception as e:
+        print(f"{test_id:4} | ERREUR | {e} | {text}")
+        failed.append({
+            "id": test_id,
+            "text": text,
+            "error": str(e),
+        })
+
+
+# ============================================================
+# DIAGNOSTIC
+# ============================================================
+
+print()
+print("============================================================")
+print("DIAGNOSTIC V9")
+print("============================================================")
+print(f"Scénarios : {len(TESTS)}")
+print(f"Réussis   : {passed}")
+print(f"Échecs    : {len(failed)}")
+
+if failed:
+    print()
+    print("===== FAILURES =====")
+
+    for item in failed:
+        print()
+        print(f"[{item['id']}] {item['text']}")
+
+        if "error" in item:
+            print("  ERREUR :", item["error"])
+        else:
+            print("  ATTENDU :", item["expected"])
+            print("  OBTENU  :", item["actual"])
+
+print()
+print("============================================================")
+
+if not failed:
+    print("✓ V9 ADVERSARIALE VALIDÉE")
+else:
+    print("✗ V9 À ANALYSER — FAILLES ADVERSARIALES DÉTECTÉES")
+
+print("============================================================")

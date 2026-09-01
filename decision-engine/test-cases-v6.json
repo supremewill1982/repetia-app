@@ -1,0 +1,282 @@
+[
+  {
+    "id": "S01",
+    "task": "Corriger une faute de frappe dans le titre.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "S02",
+    "task": "Corriger une faute d'orthographe.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "S03",
+    "task": "Corriger une typo dans un texte.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "S04",
+    "task": "Modifier le libellé d'un bouton.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "S05",
+    "task": "Changer le titre affiché sur une page.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "S06",
+    "task": "Corriger un mot mal écrit.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "S07",
+    "task": "Rectifier une erreur de texte.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "S08",
+    "task": "Modifier simplement le label d'un champ.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "S09",
+    "task": "Corriger une petite erreur dans un message.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "S10",
+    "task": "Changer une phrase affichée à l'utilisateur.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "M01",
+    "task": "Corriger un bug sur l'écran de connexion.",
+    "expected_level": "medium",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "M02",
+    "task": "Réparer le formulaire d'inscription.",
+    "expected_level": "medium",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "M03",
+    "task": "Ajouter une fonctionnalité de recherche.",
+    "expected_level": "medium",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "M04",
+    "task": "Corriger un problème de navigation.",
+    "expected_level": "medium",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "M05",
+    "task": "Modifier l'affichage d'une page.",
+    "expected_level": "medium",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "M06",
+    "task": "Ajouter un bouton à l'interface.",
+    "expected_level": "medium",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "M07",
+    "task": "Corriger le fonctionnement d'un formulaire.",
+    "expected_level": "medium",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "M08",
+    "task": "Améliorer l'écran de profil.",
+    "expected_level": "medium",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "M09",
+    "task": "Ajouter un test pour cette fonctionnalité.",
+    "expected_level": "medium",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "M10",
+    "task": "Réparer la connexion entre deux écrans.",
+    "expected_level": "medium",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "C01",
+    "task": "Modifier l'architecture de l'application.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "C02",
+    "task": "Refactoriser le système de données.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "C03",
+    "task": "Modifier le système d'authentification.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "C04",
+    "task": "Revoir la sécurité de l'application.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "C05",
+    "task": "Modifier la base de données.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "C06",
+    "task": "Mettre en place une synchronisation backend frontend.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "C07",
+    "task": "Modifier plusieurs services de l'application.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "C08",
+    "task": "Refondre plusieurs composants.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "C09",
+    "task": "Modifier le stockage des données sensibles.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "C10",
+    "task": "Changer l'architecture backend.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "R01",
+    "task": "Modifier la base de données en production.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": true
+  },
+  {
+    "id": "R02",
+    "task": "Effectuer une migration en production.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": true
+  },
+  {
+    "id": "R03",
+    "task": "Supprimer des données en production.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": true
+  },
+  {
+    "id": "R04",
+    "task": "Effectuer une migration destructive.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": true
+  },
+  {
+    "id": "R05",
+    "task": "Déployer une modification irréversible en production.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": true
+  },
+  {
+    "id": "U01",
+    "task": "Corriger un bug difficile à reproduire.",
+    "expected_level": "medium",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "U02",
+    "task": "Résoudre un problème dont la cause est inconnue.",
+    "expected_level": "medium",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "U03",
+    "task": "Le problème est incertain et sans test.",
+    "expected_level": "medium",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "U04",
+    "task": "On ne sait pas pourquoi cette erreur apparaît.",
+    "expected_level": "medium",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "U05",
+    "task": "Diagnostiquer un bug impossible à reproduire régulièrement.",
+    "expected_level": "medium",
+    "expected_debate": true,
+    "expected_human": false
+  }
+]

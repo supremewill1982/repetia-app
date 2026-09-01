@@ -1,0 +1,702 @@
+[
+  {
+    "id": "A01",
+    "task": "La production est mentionnée dans la documentation.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "A02",
+    "task": "La base de données est décrite dans le guide.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "A03",
+    "task": "L'authentification est expliquée dans l'aide.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "A04",
+    "task": "La sécurité est abordée dans un article.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "A05",
+    "task": "La migration est citée comme exemple.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "A06",
+    "task": "Le paiement est mentionné dans le message.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "A07",
+    "task": "La production apparaît dans le titre de la page.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "A08",
+    "task": "Le système réel est décrit dans la documentation.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "A09",
+    "task": "La base de données est affichée dans une capture.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "A10",
+    "task": "L'authentification est uniquement documentée.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "B01",
+    "task": "Corriger le titre de la page production.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "B02",
+    "task": "Changer le texte de la page sécurité.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "B03",
+    "task": "Corriger une faute dans le message d'authentification.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "B04",
+    "task": "Modifier le texte qui parle de la base de données.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "B05",
+    "task": "Corriger l'orthographe du mot migration.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "B06",
+    "task": "Changer le libellé du bouton paiement.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "B07",
+    "task": "Modifier une phrase concernant la production.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "B08",
+    "task": "Corriger le texte de l'écran de sécurité.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "B09",
+    "task": "Changer le titre de la page d'administration.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "B10",
+    "task": "Corriger un message contenant le mot authentification.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "C01",
+    "task": "Repenser entièrement la façon dont les informations sont stockées.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "C02",
+    "task": "Changer profondément la communication entre l'application et le serveur.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "C03",
+    "task": "Remplacer complètement le mécanisme utilisé pour connecter les utilisateurs.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "C04",
+    "task": "Revoir le système qui décide qui peut accéder à quoi.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "C05",
+    "task": "Réorganiser profondément les données existantes.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "C06",
+    "task": "Faire fonctionner ensemble plusieurs parties essentielles du système.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "C07",
+    "task": "Remplacer le système central qui conserve les informations.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "C08",
+    "task": "Modifier plusieurs couches fondamentales de l'application.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "C09",
+    "task": "Repenser complètement la gestion des comptes utilisateurs.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "C10",
+    "task": "Changer le fonctionnement interne principal de l'application.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "D01",
+    "task": "Appliquer le changement directement là où travaillent actuellement les clients.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": true
+  },
+  {
+    "id": "D02",
+    "task": "Modifier les informations actuellement utilisées par les utilisateurs.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": true
+  },
+  {
+    "id": "D03",
+    "task": "Supprimer définitivement les données actuellement en service.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": true
+  },
+  {
+    "id": "D04",
+    "task": "Déployer le changement sans possibilité de revenir en arrière.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": true
+  },
+  {
+    "id": "D05",
+    "task": "Appliquer immédiatement la modification sur l'environnement actif.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": true
+  },
+  {
+    "id": "D06",
+    "task": "Remplacer définitivement les données utilisées actuellement.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": true
+  },
+  {
+    "id": "D07",
+    "task": "Effectuer l'opération directement sur le système actif.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": true
+  },
+  {
+    "id": "D08",
+    "task": "Rendre la modification définitive sur les données existantes.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": true
+  },
+  {
+    "id": "D09",
+    "task": "Supprimer définitivement les comptes actuellement utilisés.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": true
+  },
+  {
+    "id": "D10",
+    "task": "Mettre immédiatement le nouveau système en service sans retour possible.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": true
+  },
+  {
+    "id": "E01",
+    "task": "Modifier la page, mais ne toucher absolument pas à la production.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "E02",
+    "task": "Changer le texte sans modifier le système réel.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "E03",
+    "task": "Revoir la documentation, sans changer l'authentification.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "E04",
+    "task": "Corriger le message, aucune donnée ne doit être modifiée.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "E05",
+    "task": "Mettre à jour la documentation, sans effectuer de migration.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "E06",
+    "task": "Modifier le texte, mais surtout ne rien déployer.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "E07",
+    "task": "Corriger la page sans toucher à la base de données.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "E08",
+    "task": "Changer le libellé sans modifier le fonctionnement.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "E09",
+    "task": "Documenter la sécurité sans effectuer aucune modification.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "E10",
+    "task": "Décrire une migration sans l'exécuter.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "F01",
+    "task": "Le bug apparaît parfois et sa cause reste inconnue.",
+    "expected_level": "medium",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "F02",
+    "task": "Le problème survient de manière aléatoire.",
+    "expected_level": "medium",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "F03",
+    "task": "Nous ne savons pas encore d'où vient cette erreur.",
+    "expected_level": "medium",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "F04",
+    "task": "Le comportement n'est pas reproductible.",
+    "expected_level": "medium",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "F05",
+    "task": "Impossible pour l'instant d'identifier la cause.",
+    "expected_level": "medium",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "F06",
+    "task": "Le problème disparaît parfois lorsqu'on tente de le reproduire.",
+    "expected_level": "medium",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "F07",
+    "task": "Personne ne sait encore ce qui provoque cette erreur.",
+    "expected_level": "medium",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "F08",
+    "task": "L'origine du dysfonctionnement reste indéterminée.",
+    "expected_level": "medium",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "F09",
+    "task": "Le problème apparaît seulement dans certaines circonstances inconnues.",
+    "expected_level": "medium",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "F10",
+    "task": "Il faut diagnostiquer un comportement dont la cause reste à déterminer.",
+    "expected_level": "medium",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "G01",
+    "task": "Corriger une faute puis modifier les données en production.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": true
+  },
+  {
+    "id": "G02",
+    "task": "Changer un titre puis revoir l'architecture backend.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "G03",
+    "task": "Réparer un bug puis supprimer définitivement les anciennes données.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": true
+  },
+  {
+    "id": "G04",
+    "task": "Ajouter un bouton sans modifier les données.",
+    "expected_level": "medium",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "G05",
+    "task": "Corriger le texte puis effectuer une migration réelle.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": true
+  },
+  {
+    "id": "G06",
+    "task": "Modifier l'authentification uniquement dans la documentation.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "G07",
+    "task": "Revoir l'architecture uniquement dans un prototype local.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "G08",
+    "task": "Changer le texte d'une page de production sans modifier le système.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "G09",
+    "task": "Ajouter un formulaire sans toucher à la base de données.",
+    "expected_level": "medium",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "G10",
+    "task": "Modifier le système de paiement dans l'environnement réellement utilisé.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": true
+  },
+  {
+    "id": "H01",
+    "task": "Refonte complète du backend.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "H02",
+    "task": "Auth à revoir.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "H03",
+    "task": "DB à modifier.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "H04",
+    "task": "Bug login.",
+    "expected_level": "medium",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "H05",
+    "task": "Formulaire cassé.",
+    "expected_level": "medium",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "H06",
+    "task": "Données actives à supprimer définitivement.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": true
+  },
+  {
+    "id": "H07",
+    "task": "Déploiement réel sans retour.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": true
+  },
+  {
+    "id": "H08",
+    "task": "Cause inconnue.",
+    "expected_level": "medium",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "H09",
+    "task": "Simple changement de texte.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "H10",
+    "task": "Nouvelle fonctionnalité.",
+    "expected_level": "medium",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "I01",
+    "task": "Corriger un titre et supprimer définitivement les données réelles.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": true
+  },
+  {
+    "id": "I02",
+    "task": "Modifier un bouton mais déployer uniquement en production.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": true
+  },
+  {
+    "id": "I03",
+    "task": "Documenter une migration sans l'exécuter.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "I04",
+    "task": "Revoir l'architecture dans un prototype local uniquement.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "I05",
+    "task": "Corriger une faute dans une page utilisée en production.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "I06",
+    "task": "Modifier le fonctionnement du système utilisé en production.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": true
+  },
+  {
+    "id": "I07",
+    "task": "Changer le texte d'une page sans toucher au système actif.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "I08",
+    "task": "Réparer un bug dont la cause est inconnue puis déployer immédiatement.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": true
+  },
+  {
+    "id": "I09",
+    "task": "Ajouter une fonctionnalité et modifier plusieurs services essentiels.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "I10",
+    "task": "Corriger un message concernant la sécurité sans changer le système.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "J01",
+    "task": "Faire en sorte que les utilisateurs actuels utilisent le nouveau mécanisme.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": true
+  },
+  {
+    "id": "J02",
+    "task": "Remplacer ce qui permet actuellement aux utilisateurs de se connecter.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "J03",
+    "task": "Changer la façon dont les informations sont conservées.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "J04",
+    "task": "Supprimer ce qui est actuellement utilisé par les clients.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": true
+  },
+  {
+    "id": "J05",
+    "task": "Faire disparaître définitivement les anciennes données actives.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": true
+  },
+  {
+    "id": "J06",
+    "task": "Modifier uniquement la formulation visible à l'écran.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "J07",
+    "task": "Corriger uniquement le texte affiché.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "J08",
+    "task": "Revoir la logique interne qui contrôle les accès.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": false
+  },
+  {
+    "id": "J09",
+    "task": "Changer uniquement la présentation de la page.",
+    "expected_level": "simple",
+    "expected_debate": false,
+    "expected_human": false
+  },
+  {
+    "id": "J10",
+    "task": "Modifier le comportement interne du système de connexion.",
+    "expected_level": "complex",
+    "expected_debate": true,
+    "expected_human": false
+  }
+]

@@ -1,0 +1,39 @@
+[
+  {
+    "id": "SIMPLE-001",
+    "description": "Corriger une faute de frappe dans un texte",
+    "difficulty": 1,
+    "risk": 1,
+    "expected_agents": ["coder"],
+    "expected_debate": false,
+    "expected_arbitration": false
+  },
+  {
+    "id": "MEDIUM-001",
+    "description": "Corriger un bug d'authentification impliquant plusieurs fichiers",
+    "difficulty": 5,
+    "risk": 5,
+    "expected_agents": ["coder", "reviewer"],
+    "expected_debate": false,
+    "expected_arbitration": false
+  },
+  {
+    "id": "COMPLEX-001",
+    "description": "Modifier l'architecture de stockage de données sensibles",
+    "difficulty": 9,
+    "risk": 9,
+    "expected_agents": ["coder", "reviewer"],
+    "expected_debate": true,
+    "expected_arbitration": false
+  },
+  {
+    "id": "CRITICAL-001",
+    "description": "Effectuer une migration destructive de données de production",
+    "difficulty": 10,
+    "risk": 10,
+    "expected_agents": ["coder", "reviewer"],
+    "expected_debate": true,
+    "expected_arbitration": true,
+    "expected_human": true
+  }
+]

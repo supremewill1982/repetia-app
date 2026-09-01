@@ -1,0 +1,23 @@
+{
+  "version": 4,
+  "thresholds": {
+    "simple_max": 3,
+    "medium_max": 6,
+    "review_risk": 5,
+    "debate_risk": 7,
+    "debate_complex": true,
+    "arbitration_failed_rounds": 2,
+    "human_risk": 10
+  },
+  "weights": {
+    "scope": 2,
+    "components": 2,
+    "security": 3,
+    "data": 3,
+    "production": 4,
+    "irreversible": 4,
+    "user_impact": 2,
+    "uncertainty": 2,
+    "testing": 1
+  }
+}

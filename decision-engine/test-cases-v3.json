@@ -1,0 +1,47 @@
+[
+  {
+    "name": "FAUTE SIMPLE",
+    "task": "Corriger une faute de frappe dans le titre.",
+    "expected_level": "simple",
+    "expected_agents": ["coder"],
+    "expected_debate": false,
+    "expected_arbitration": false,
+    "expected_human": false
+  },
+  {
+    "name": "BUG ÉCRAN",
+    "task": "Corriger un bug sur l'écran de connexion.",
+    "expected_level": "medium",
+    "expected_agents": ["coder", "reviewer"],
+    "expected_debate": false,
+    "expected_arbitration": false,
+    "expected_human": false
+  },
+  {
+    "name": "DONNÉES SENSIBLES",
+    "task": "Modifier l'architecture de stockage des données sensibles.",
+    "expected_level": "complex",
+    "expected_agents": ["coder", "reviewer"],
+    "expected_debate": true,
+    "expected_arbitration": false,
+    "expected_human": false
+  },
+  {
+    "name": "AUTHENTIFICATION",
+    "task": "Modifier le système d'authentification de l'application.",
+    "expected_level": "complex",
+    "expected_agents": ["coder", "reviewer"],
+    "expected_debate": true,
+    "expected_arbitration": false,
+    "expected_human": false
+  },
+  {
+    "name": "MIGRATION PRODUCTION",
+    "task": "Effectuer une migration destructive de la base de données de production.",
+    "expected_level": "complex",
+    "expected_agents": ["coder", "reviewer"],
+    "expected_debate": true,
+    "expected_arbitration": true,
+    "expected_human": true
+  }
+]
