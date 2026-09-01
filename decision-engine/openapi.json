@@ -1,0 +1,112 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Decision Engine API",
+    "version": "1.0.0",
+    "description": "Decision and governance API. The engine decides; it does not execute external actions."
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health check",
+        "responses": {
+          "200": {
+            "description": "Service is healthy",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Health"}}}
+          }
+        }
+      }
+    },
+    "/v1/decide": {
+      "post": {
+        "summary": "Evaluate a decision request",
+        "security": [{"ApiKeyAuth": []}],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/DecisionRequest"}}}},
+        "responses": {
+          "200": {"description": "Decision returned", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/DecisionResponse"}}}},
+          "400": {"description": "Invalid request"},
+          "401": {"description": "Unauthorized"},
+          "413": {"description": "Request too large"},
+          "503": {"description": "Production authentication is not configured"}
+        }
+      }
+    },
+    "/v1/decide/audited": {
+      "post": {
+        "summary": "Evaluate a decision request with audit metadata",
+        "security": [{"ApiKeyAuth": []}],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/DecisionRequest"}}}},
+        "responses": {
+          "200": {"description": "Decision and audit returned", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/AuditedResponse"}}}},
+          "400": {"description": "Invalid request"},
+          "401": {"description": "Unauthorized"},
+          "413": {"description": "Request too large"},
+          "503": {"description": "Production authentication is not configured"}
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {"ApiKeyAuth": {"type": "apiKey", "in": "header", "name": "X-API-Key"}},
+    "schemas": {
+      "DecisionRequest": {
+        "type": "object",
+        "required": ["description"],
+        "properties": {
+          "description": {"type": "string", "maxLength": 20000},
+          "context": {"type": "object"},
+          "disagreement": {"type": "boolean", "default": false},
+          "failed_debate_rounds": {"type": "integer", "minimum": 0, "default": 0},
+          "requester": {"type": ["string", "null"], "maxLength": 256},
+          "request_id": {"type": ["string", "null"], "maxLength": 256}
+        }
+      },
+      "DecisionResponse": {
+        "type": "object",
+        "required": ["difficulty", "risk", "level", "agents", "debate", "arbitration", "human", "uncertainty", "reason", "engine_version"],
+        "properties": {
+          "difficulty": {"type": "integer"},
+          "risk": {"type": "integer"},
+          "level": {"type": "string"},
+          "agents": {"type": "array", "items": {"type": "string"}},
+          "debate": {"type": "boolean"},
+          "arbitration": {"type": "boolean"},
+          "human": {"type": "boolean"},
+          "uncertainty": {"type": "boolean"},
+          "reason": {"type": "string"},
+          "engine_version": {"type": "string"}
+        }
+      },
+      "Audit": {
+        "type": "object",
+        "required": ["request_id", "requester", "engine_version", "level", "risk", "human", "debate", "arbitration", "uncertainty", "reason", "timestamp"],
+        "properties": {
+          "request_id": {"type": ["string", "null"]},
+          "requester": {"type": ["string", "null"]},
+          "engine_version": {"type": "string"},
+          "level": {"type": "string"},
+          "risk": {"type": "integer"},
+          "human": {"type": "boolean"},
+          "debate": {"type": "boolean"},
+          "arbitration": {"type": "boolean"},
+          "uncertainty": {"type": "boolean"},
+          "reason": {"type": "string"},
+          "timestamp": {"type": "string", "format": "date-time"}
+        }
+      },
+      "AuditedResponse": {
+        "type": "object",
+        "required": ["decision", "audit"],
+        "properties": {
+          "decision": {"$ref": "#/components/schemas/DecisionResponse"},
+          "audit": {"$ref": "#/components/schemas/Audit"}
+        }
+      },
+      "Health": {
+        "type": "object",
+        "required": ["status", "service"],
+        "properties": {"status": {"type": "string"}, "service": {"type": "string"}}
+      }
+    }
+  }
+}
