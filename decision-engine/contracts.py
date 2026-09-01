@@ -16,6 +16,7 @@ class DecisionRequest:
     failed_debate_rounds: int = 0
     requester: Optional[str] = None
     request_id: Optional[str] = None
+    tenant_id: Optional[str] = None
 
 
 @dataclass(frozen=True)
