@@ -1,0 +1,16 @@
+{
+  "version": 5,
+  "thresholds": {
+    "simple_max": 3,
+    "medium_max": 6,
+    "review_risk": 5,
+    "debate_risk": 7,
+    "arbitration_failed_rounds": 2,
+    "human_risk": 10
+  },
+  "difficulty": {
+    "simple": {"agents": ["coder"]},
+    "medium": {"agents": ["coder", "reviewer"]},
+    "complex": {"agents": ["coder", "reviewer"]}
+  }
+}
