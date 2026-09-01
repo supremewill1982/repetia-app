@@ -21,6 +21,7 @@ The consuming application remains responsible for every external side effect.
 - `evaluate(request)`: public evaluation entry point.
 - `evaluate_payload(payload)`: transport-neutral JSON-compatible boundary.
 - `evaluate_payload_with_audit(payload)`: decision plus structured audit record.
+- `plan_governance(response)`: execution-neutral plan for agents, debate, arbitration and human gate.
 
 Consumers should depend only on this public API, not legacy classifier filenames or implementation details.
 
@@ -34,13 +35,21 @@ Endpoints:
 - `POST /v1/decide` — evaluate a JSON decision request.
 - `POST /v1/decide/audited` — evaluate and return the decision plus audit metadata.
 
-Example request:
+In production mode (`DECISION_ENGINE_ENV=production`), the API requires `X-API-Key` matching `DECISION_ENGINE_API_KEY`. TLS, rate limiting, network controls, and tenant authorization remain deployment responsibilities.
 
-```json
-{"description":"review a report","request_id":"req-001","requester":"client-a"}
+## Container
+
+Build and run the production container:
+
+```bash
+docker build -t decision-engine .
+docker run --rm -p 8000:8000 \
+  -e DECISION_ENGINE_ENV=production \
+  -e DECISION_ENGINE_API_KEY='replace-with-a-secret' \
+  decision-engine
 ```
 
-The adapter intentionally has no authentication or persistence dependency. Production deployments must place it behind an authenticated gateway/service boundary with TLS, rate limiting, logging, network restrictions, and tenant isolation.
+The image runs as a non-root user and exposes `/health` for container health checks.
 
 ## Governance
 
@@ -79,28 +88,27 @@ Consumer decides whether/how to execute
 
 ## Audit
 
-Audit records contain request identity, requester, engine version, decision level/risk, governance flags, reason, and timestamp. The original request payload is not persisted by the audit helper, reducing accidental capture of sensitive input data.
+Audit records contain request identity, requester, engine version, classifier version, decision level/risk, governance flags, reason, and timestamp. The original request payload is not persisted by the audit helper, reducing accidental capture of sensitive input data.
 
 ## Development
 
 ```bash
 python -m pip install -e .
-python -m unittest test_contracts.py test_engine.py test_public_api.py test_audit.py test_service.py test_asgi.py test_cross_domain.py
+python -m unittest test_contracts.py test_engine.py test_public_api.py test_audit.py test_service.py test_asgi.py test_openapi.py test_governance.py test_cross_domain.py
 python tests/run_v9.py
 ```
 
-To run the ASGI application locally with an ASGI server such as Uvicorn:
+To run the ASGI application locally with Uvicorn:
 
 ```bash
+python -m pip install -e '.[server]'
 uvicorn decision_engine.asgi:app
 ```
-
-The ASGI server is an optional deployment dependency and is intentionally not required by the core package.
 
 ## Integration rule
 
 Do not import `classifier-v5.py`, `classifier.py`, or other legacy implementation modules from consuming applications. Use only the public API:
 
 ```python
-from decision_engine import DecisionRequest, DecisionResponse, evaluate
+from decision_engine import DecisionRequest, DecisionResponse, evaluate, plan_governance
 ```
