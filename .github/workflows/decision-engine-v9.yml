@@ -3,6 +3,7 @@ name: Decision Engine V9
 on:
   push:
     branches:
+      - main
       - fix/decision-engine-v9
   workflow_dispatch:
 
