@@ -1,6 +1,6 @@
 import unittest
 
-from service import evaluate_payload
+from service import evaluate_payload, evaluate_payload_with_audit
 
 
 class ServiceBoundaryTests(unittest.TestCase):
@@ -10,6 +10,13 @@ class ServiceBoundaryTests(unittest.TestCase):
         self.assertIn("level", result)
         self.assertIn("human", result)
         self.assertNotIn("execute", result)
+
+    def test_payload_returns_decision_and_audit(self):
+        result = evaluate_payload_with_audit(
+            {"description": "review a report", "request_id": "req-001"}
+        )
+        self.assertEqual(result["audit"]["request_id"], "req-001")
+        self.assertEqual(result["decision"]["engine_version"], "v1")
 
     def test_payload_rejects_missing_description(self):
         with self.assertRaises(ValueError):
