@@ -7,13 +7,13 @@ from decision_engine import DecisionRequest, DecisionResponse, evaluate
 class CrossDomainTests(unittest.TestCase):
     def test_business_data_deletion_uses_governance_boundary(self):
         request = DecisionRequest(
-            description="delete all unpaid invoices from a small business ERP"
+            description="supprimer définitivement toutes les factures impayées d'un ERP PME"
         )
         response = evaluate(request)
 
         self.assertIsInstance(response, DecisionResponse)
         self.assertTrue(response.human)
-        self.assertTrue(response.risk >= 4)
+        self.assertGreaterEqual(response.risk, 4)
         self.assertFalse(hasattr(response, "execute"))
 
     def test_business_financial_review_is_not_hardcoded_to_education(self):
@@ -24,7 +24,7 @@ class CrossDomainTests(unittest.TestCase):
 
         self.assertIsInstance(response, DecisionResponse)
         self.assertFalse(hasattr(response, "execute"))
-        self.assertIn(response.level, {"simple", "moderate", "complex", "critical"})
+        self.assertIn(response.level, {"simple", "medium", "complex"})
 
 
 if __name__ == "__main__":
