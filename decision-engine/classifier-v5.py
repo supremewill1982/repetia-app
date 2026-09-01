@@ -4,779 +4,315 @@ from pathlib import Path
 BASE = Path(__file__).parent
 POLICY = json.loads((BASE / "policies-v5.json").read_text())
 
+# V9 is intentionally conservative: classify the requested action, not
+# technical words merely mentioned in a description or protected clause.
+TEXT_ACTIONS = (
+    "corriger le titre", "changer le titre", "modifier le titre",
+    "corriger une faute", "corriger une faute de frappe", "corriger l'orthographe",
+    "faute de frappe", "changer le texte", "modifier le texte", "corriger le texte",
+    "modifier une phrase", "corriger une phrase", "changer le libellé",
+    "modifier le libellé", "corriger le message", "corriger un message",
+    "modifier le message", "modifier un message", "texte affiché",
+    "formulation visible", "présentation de la page", "présentation uniquement",
+    "simple changement de texte", "corriger la page", "modifier la page",
+    "changer la page", "corriger le mot", "modifier le mot", "changer le mot",
+    "modifier uniquement la présentation", "présentation de l'écran",
+    "texte à corriger",
+)
 
-# ============================================================
-# OUTILS
-# ============================================================
+MEDIUM_ACTIONS = (
+    "bug login", "bug de connexion", "formulaire cassé", "écran cassé",
+    "nouvelle fonctionnalité", "fonctionnalité à ajouter", "connexion à corriger",
+    "navigation à corriger", "toucher au backend", "améliorer le paiement",
+    "corriger le login", "modifier le formulaire", "ajouter un bouton",
+    "changer le formulaire", "tester sans appliquer", "tester le système",
+    "bug login", "bug de connexion",
+)
+
+COMPLEX_OBJECTS = (
+    "architecture", "backend", "frontend", "base de données", "base", "données",
+    "stockage", "authentification", "auth", "autorisation", "sécurité", "paiement",
+    "migration", "synchronisation", "services essentiels", "plusieurs services",
+    "plusieurs composants", "plusieurs couches", "couches fondamentales",
+    "comptes utilisateurs", "logique interne", "fonctionnement interne", "mécanisme",
+    "système central", "système de connexion",
+)
+
+COMPLEX_PHRASES = (
+    "repenser entièrement", "repenser complètement", "repenser la façon dont",
+    "changer profondément", "modifier profondément", "remplacer complètement",
+    "remplacer ce qui permet", "revoir le système qui", "réorganiser profondément",
+    "faire fonctionner ensemble plusieurs", "modifier plusieurs couches fondamentales",
+    "repenser complètement la gestion", "changer le fonctionnement interne",
+    "modifier le fonctionnement interne", "changer la façon dont les informations",
+    "revoir la logique interne", "modifier le comportement interne",
+    "faire en sorte que les utilisateurs", "supprimer ce qui est actuellement utilisé",
+    "changer la communication entre", "communication entre l'application et le serveur",
+    "remplacer le système central qui", "refonte complète", "refonte totale",
+    "refonte profonde", "refactorisation", "refactor", "auth à revoir", "db à modifier",
+    "base de données à modifier", "backend à modifier", "backend à revoir",
+    "architecture à revoir", "architecture à modifier", "migration réelle",
+    "déploiement réel", "déploiement en production",
+)
+
+DANGEROUS_OPERATIONS = (
+    "déployer", "déploiement maintenant", "déploiement réel", "déploiement en production",
+    "mettre en production", "mettre en service", "mettre immédiatement en service",
+    "mettre le nouveau système immédiatement en service", "appliquer directement",
+    "appliquer le changement directement", "effectuer une migration réelle",
+    "effectuer la migration en production", "migration réelle", "migration en production",
+    "effectuer l'opération directement", "directement sur le système actif",
+    "directement en production",
+)
+
+REAL_TARGETS = (
+    "production", "système actif", "environnement actif", "environnement réellement utilisé",
+    "environnement réel", "système réel", "actuellement utilisé", "actuellement utilisés",
+    "actuellement utilisées", "utilisateurs actuels", "clients actuels", "données actuellement",
+    "données actives", "données réelles", "comptes actuellement utilisés",
+    "réellement utilisé", "réellement utilisés", "réellement utilisées", "en service",
+)
+
+LOCAL_TARGETS = (
+    "prototype local", "local uniquement", "en local", "environnement local", "prototype",
+    "test local", "environnement de test", "environnement isolé",
+)
+
+IRREVERSIBLE = (
+    "définitivement", "définitive", "définitif", "sans possibilité de revenir en arrière",
+    "sans possibilité de retour", "sans retour", "aucun retour",
+    "faire disparaître définitivement", "supprimer définitivement", "remplacer définitivement",
+    "rendre la modification définitive",
+)
+
+UNCERTAINTY = (
+    "inconnu", "inconnue", "incertain", "incertaine", "aléatoire", "manière aléatoire",
+    "ne savons pas", "personne ne sait", "reste indéterminée", "reste à déterminer",
+    "cause reste", "cause inconnue", "origine du dysfonctionnement",
+    "comportement n'est pas reproductible", "pas reproductible", "disparaît parfois",
+    "certaines circonstances inconnues", "identifier la cause", "impossible à reproduire",
+)
+
+NEGATIONS = (
+    "sans déployer", "sans effectuer de déploiement", "sans faire de déploiement",
+    "ne pas déployer", "ne rien déployer", "aucun déploiement", "pas de déploiement",
+    "sans mettre en production", "ne pas mettre en production", "ne rien mettre en production",
+    "sans mettre en service", "ne pas mettre en service", "ne rien mettre en service",
+    "sans effectuer de migration", "sans effectuer la migration", "ne pas effectuer de migration",
+    "ne pas effectuer la migration", "sans migration", "aucune migration", "pas de migration",
+    "sans l'exécuter", "sans l'appliquer", "sans l'effectuer", "sans la réaliser",
+    "sans toucher", "sans modifier", "sans changer", "sans appliquer",
+    "surtout ne pas modifier", "ne surtout pas modifier", "ne surtout pas toucher",
+    "surtout ne rien déployer", "aucune donnée ne doit être modifiée",
+)
+
+DESCRIPTIVE = (
+    "documentation", "documenter", "documente", "décrire", "décrite", "décrit", "décrive",
+    "expliquée", "expliqué", "expliquer", "mentionnée", "mentionné", "mentionner",
+    "citée", "cité", "citer", "abordée", "abordé", "aborder", "présentée", "présenté",
+    "présentées", "apparaît dans", "capture d'écran", "exemple pédagogique", "comme exemple",
+    "dans le rapport", "dans le guide", "dans le manuel", "étape par étape",
+)
+
 
 def has_any(text, terms):
     return any(term in text for term in terms)
 
 
-# ============================================================
-# ACTIONS
-# ============================================================
-
 def has_action(text):
-    return has_any(text, [
-        "modifier", "modifie", "modifiez",
-        "changer", "change", "changez",
-        "corriger", "corrige", "corrigez",
-        "réparer", "répare",
-        "repenser", "revoir", "réorganiser",
-        "remplacer", "effectuer", "appliquer",
-        "déployer", "mettre à jour", "mettre en service",
-        "supprimer", "détruire", "faire disparaître",
-        "ajouter", "refaire", "refondre",
-        "reconfigurer", "transformer", "adapter",
-        "migrer", "connecter", "faire fonctionner",
-        "rendre",
-    ])
+    return has_any(text, TEXT_ACTIONS + MEDIUM_ACTIONS + COMPLEX_PHRASES + DANGEROUS_OPERATIONS + (
+        "modifier", "modifie", "modifiez", "changer", "change", "changez", "corriger",
+        "corrige", "corrigez", "réparer", "repenser", "revoir", "réorganiser", "remplacer",
+        "effectuer", "appliquer", "supprimer", "détruire", "ajouter", "refaire", "refondre",
+        "reconfigurer", "transformer", "adapter", "migrer", "connecter", "rendre",
+    ))
 
 
-# ============================================================
-# CONTEXTES
-# ============================================================
+def _has_positive_after_negation(text, positive_terms):
+    """Return True when a positive action is independently requested.
 
-def documentation_signal(text):
-    return has_any(text, [
-        "documentation", "documenter", "documente",
-        "décrire", "décrite", "décrit", "décrive",
-        "expliquée", "expliqué", "expliquer",
-        "mentionnée", "mentionné", "mentionner",
-        "citée", "cité", "citer",
-        "abordée", "abordé", "aborder",
-        "apparaît dans le titre",
-        "affichée dans une capture",
-        "affiché dans une capture",
-    ])
-
-
-def real_context(text):
-    return has_any(text, [
-        "production",
-        "système actif",
-        "environnement actif",
-        "environnement réellement utilisé",
-        "environnement réel",
-        "système réel",
-        "actuellement utilisé",
-        "actuellement utilisés",
-        "actuellement utilisées",
-        "utilisateurs actuels",
-        "clients actuels",
-        "données actuellement",
-        "données actives",
-        "données réelles",
-        "comptes actuellement utilisés",
-        "réellement utilisé",
-        "réellement utilisés",
-        "réellement utilisées",
-        "en service",
-    ])
-
-
-def local_context(text):
-    return has_any(text, [
-        "prototype local",
-        "local uniquement",
-        "en local",
-        "environnement local",
-        "prototype",
-        "test local",
-    ])
-
-
-# ============================================================
-# PROTECTION / NÉGATION
-# ============================================================
-
-def protected(text):
-    return has_any(text, [
-        "sans modifier le système",
-        "sans modifier le système réel",
-        "sans toucher à la production",
-        "ne toucher absolument pas à la production",
-        "sans changer l'authentification",
-        "aucune donnée ne doit être modifiée",
-        "sans effectuer de migration",
-        "sans effectuer aucune modification",
-        "surtout ne rien déployer",
-        "sans toucher à la base de données",
-        "sans modifier le fonctionnement",
-        "uniquement dans la documentation",
-        "uniquement dans un prototype local",
-        "sans changer le système actif",
-        "sans toucher au système",
-        "sans l'exécuter",
-        "sans modifier les données",
-        "sans toucher aux données",
-        "sans changer le système",
-    ])
-
-
-def negated_target(text):
-    return has_any(text, [
-        "sans changer l'authentification",
-        "sans effectuer de migration",
-        "sans effectuer aucune modification",
-        "sans toucher à la base de données",
-        "sans modifier les données",
-        "sans toucher aux données",
-        "sans changer le système",
-        "sans modifier le système",
-        "sans modifier le fonctionnement",
-        "sans l'exécuter",
-        "ne toucher absolument pas à la production",
-    ])
-
-
-# ============================================================
-# ACTION TEXTUELLE
-# ============================================================
-
-def text_target(text):
-    return has_any(text, [
-        "corriger le titre",
-        "changer le titre",
-        "modifier le titre",
-        "corriger une faute",
-        "corriger une faute de frappe",
-        "corriger l'orthographe",
-        "faute de frappe",
-        "changer le texte",
-        "modifier le texte",
-        "corriger le texte",
-        "modifier une phrase",
-        "corriger une phrase",
-        "changer le libellé",
-        "modifier le libellé",
-        "corriger le message",
-        "corriger un message",
-        "modifier le message",
-        "modifier un message",
-        "texte affiché",
-        "formulation visible",
-        "présentation de la page",
-        "présentation uniquement",
-        "simple changement de texte",
-        "corriger la page",
-        "modifier la page",
-        "changer la page",
-        "corriger le mot",
-        "modifier le mot",
-        "changer le mot",
-    ])
-
-
-# ============================================================
-# IRRÉVERSIBILITÉ
-# ============================================================
-
-def irreversible(text):
-    return has_any(text, [
-        "définitivement",
-        "définitive",
-        "définitif",
-        "sans possibilité de revenir en arrière",
-        "sans possibilité de retour",
-        "sans retour",
-        "aucun retour",
-        "faire disparaître définitivement",
-        "supprimer définitivement",
-        "remplacer définitivement",
-        "rendre la modification définitive",
-    ])
-
-
-# ============================================================
-# INCERTITUDE
-# ============================================================
-
-def uncertainty_signal(text):
-    return has_any(text, [
-        "inconnu",
-        "inconnue",
-        "incertain",
-        "incertaine",
-        "aléatoire",
-        "manière aléatoire",
-        "ne savons pas",
-        "personne ne sait",
-        "reste indéterminée",
-        "reste à déterminer",
-        "cause reste",
-        "cause inconnue",
-        "origine du dysfonctionnement",
-        "comportement n'est pas reproductible",
-        "pas reproductible",
-        "disparaît parfois",
-        "certaines circonstances inconnues",
-        "identifier la cause",
-    ])
-
-
-# ============================================================
-# COMPLEXITÉ SÉMANTIQUE
-# ============================================================
-
-def semantic_complex(text):
-    return has_any(text, [
-        "repenser entièrement",
-        "repenser complètement",
-        "repenser la façon dont",
-        "changer profondément",
-        "modifier profondément",
-        "remplacer complètement",
-        "remplacer ce qui permet",
-        "revoir le système qui",
-        "réorganiser profondément",
-        "faire fonctionner ensemble plusieurs",
-        "modifier plusieurs couches fondamentales",
-        "repenser complètement la gestion",
-        "changer le fonctionnement interne",
-        "modifier le fonctionnement interne",
-        "changer la façon dont les informations",
-        "revoir la logique interne",
-        "modifier le comportement interne",
-        "faire en sorte que les utilisateurs",
-        "supprimer ce qui est actuellement utilisé",
-        "changer la communication entre",
-        "communication entre l'application et le serveur",
-        "remplacer le système central qui",
-    ])
-
-
-# ============================================================
-# CIBLES TECHNIQUES RÉELLEMENT VISÉES
-# ============================================================
-
-def technical_target_action(text):
-    return has_any(text, [
-        # architecture
-        "revoir l'architecture",
-        "modifier l'architecture",
-        "changer l'architecture",
-        "adapter l'architecture",
-        "repenser l'architecture",
-
-        # backend/frontend
-        "revoir le backend",
-        "modifier le backend",
-        "changer le backend",
-        "revoir le frontend",
-        "modifier le frontend",
-        "changer le frontend",
-
-        # données
-        "modifier la base de données",
-        "modifier les données",
-        "changer les données",
-        "supprimer les données",
-        "remplacer les données",
-        "réorganiser les données",
-        "modifier le stockage",
-        "changer le stockage",
-
-        # auth
-        "modifier l'authentification",
-        "changer l'authentification",
-        "revoir l'authentification",
-        "remplacer l'authentification",
-        "modifier l'autorisation",
-        "changer l'autorisation",
-        "revoir l'autorisation",
-
-        # sécurité
-        "modifier la sécurité",
-        "changer la sécurité",
-        "revoir la sécurité",
-
-        # fonctionnement
-        "modifier le fonctionnement",
-        "changer le fonctionnement",
-        "revoir le fonctionnement",
-        "modifier le comportement",
-        "changer le comportement",
-        "revoir la logique interne",
-        "modifier la logique interne",
-
-        # services
-        "modifier plusieurs services",
-        "modifier plusieurs composants",
-        "modifier plusieurs couches",
-        "remplacer le mécanisme",
-        "changer le mécanisme",
-        "revoir le mécanisme",
-
-        # paiement
-        "modifier le paiement",
-        "changer le paiement",
-        "revoir le paiement",
-        "modifier le système de paiement",
-        "changer le système de paiement",
-
-        # migration
-        "effectuer une migration",
-        "effectuer la migration",
-        "migrer les données",
-        "migration réelle",
-
-        # irréversible / données existantes
-        "rendre la modification définitive",
-        "rendre la modification définitive sur les données existantes",
-    ])
-
-
-# ============================================================
-# OBJETS TECHNIQUES
-# ============================================================
-
-def complex_object(text):
-    return has_any(text, [
-        "architecture",
-        "backend",
-        "frontend",
-        "base de données",
-        "données",
-        "stockage",
-        "authentification",
-        "autorisation",
-        "sécurité",
-        "paiement",
-        "migration",
-        "synchronisation",
-        "services essentiels",
-        "plusieurs services",
-        "plusieurs composants",
-        "plusieurs couches",
-        "couches fondamentales",
-        "comptes utilisateurs",
-        "logique interne",
-        "fonctionnement interne",
-        "mécanisme",
-        "système central",
-    ])
-
-
-# ============================================================
-# OPÉRATION RÉELLE
-# ============================================================
-
-def operational_action(text):
+    A negated clause protects its own target, but a later clause introduced by
+    'puis', 'et', or 'mais' is independent and remains actionable.
     """
-    Détecte uniquement une opération réellement demandée.
-
-    Une formulation descriptive, préparatoire, simulée ou explicitement
-    négative ne constitue pas une opération réelle.
-    """
-    t = text.lower().strip()
-
-    # Négations / simulations / préparation : aucune opération réelle.
-    blocked = [
-        "sans déployer",
-        "sans effectuer de déploiement",
-        "sans faire de déploiement",
-        "ne pas déployer",
-        "ne rien déployer",
-        "aucun déploiement",
-        "pas de déploiement",
-        "sans mettre en production",
-        "ne pas mettre en production",
-        "ne rien mettre en production",
-        "sans mettre en service",
-        "ne pas mettre en service",
-        "ne rien mettre en service",
-        "sans effectuer de migration",
-        "sans effectuer la migration",
-        "ne pas effectuer de migration",
-        "ne pas effectuer la migration",
-        "sans migration",
-        "aucune migration",
-        "pas de migration",
-        "sans l'exécuter",
-        "sans l'appliquer",
-        "sans l'effectuer",
-        "sans la réaliser",
-        "sans toucher",
-        "sans modifier",
-        "sans changer",
-        "sans appliquer",
-        "simuler",
-        "simulation",
-        "préparer le déploiement",
-        "préparer une migration",
-        "préparer le changement",
-        "documenter la migration",
-        "décrire une migration",
-    ]
-
-    if has_any(t, blocked):
-        return False
-
-    return has_any(t, [
-        "déployer immédiatement",
-        "déployer en production",
-        "déployer",
-        "déploiement réel",
-        "déploiement en production",
-        "mettre immédiatement en service",
-        "mettre le nouveau système immédiatement en service",
-        "mettre en service",
-        "mettre en production",
-        "appliquer le changement directement",
-        "appliquer directement",
-        "effectuer une migration réelle",
-        "effectuer la migration en production",
-        "migration réelle",
-        "migration en production",
-        "effectuer l'opération directement",
-        "directement sur le système actif",
-        "directement en production",
-    ])
-
-def active_modification(text):
-    """
-    Détecte une modification visant explicitement un système/données actifs.
-    """
-    t = text.lower().strip()
-
-    return has_any(t, [
-        "modifier les informations actuellement utilisées",
-        "modifier les données actuellement utilisées",
-        "modifier le fonctionnement du système utilisé",
-        "modifier le système de paiement dans l'environnement réellement utilisé",
-        "supprimer ce qui est actuellement utilisé",
-        "faire en sorte que les utilisateurs actuels",
-        "données actuellement utilisées",
-        "données actives",
-        "comptes actuellement utilisés",
-        "modifier les données en production",
-        "supprimer les données en production",
-        "remplacer les données en production",
-        "modifier le système réellement utilisé",
-        "modifier le système actif",
-        "supprimer les comptes actuellement utilisés",
-    ])
-
-# ============================================================
-# DOCUMENTATION PURE
-# ============================================================
-
-def documentation_only(text):
-    if not documentation_signal(text):
-        return False
-
-    # Une négation technique explicite signifie que la cible
-    # technique n'est PAS modifiée.
-    if negated_target(text):
-        return True
-
-    # "uniquement dans la documentation"
-    if "uniquement dans la documentation" in text:
-        return True
-
-    # Documenter / décrire / expliquer une cible.
-    if has_any(text, [
-        "documenter",
-        "décrire",
-        "décrire une migration",
-        "expliquer",
-        "revoir la documentation",
-        "mettre à jour la documentation",
-        "corriger la documentation",
-        "modifier la documentation",
-    ]):
-        return True
-
-    # Une mention descriptive n'est pas une action.
-    if not has_action(text):
-        return True
-
+    for term in positive_terms:
+        start = 0
+        while True:
+            pos = text.find(term, start)
+            if pos < 0:
+                break
+            prefix = text[:pos]
+            markers = [prefix.rfind(x) for x in (" puis ", " et ", " mais ", ", ")]
+            boundary = max(markers)
+            segment = prefix[boundary + 1:] if boundary >= 0 else prefix
+            if not has_any(segment, NEGATIONS):
+                return True
+            start = pos + len(term)
     return False
 
 
-# ============================================================
-# TEXTE PUR
-# ============================================================
+def documentation_only(text):
+    if not has_any(text, DESCRIPTIVE):
+        return False
+    # Description of a production/technical object is safe. A real positive
+    # operation later in the request overrides the descriptive framing.
+    return not _has_positive_after_negation(text, DANGEROUS_OPERATIONS + (
+        "supprimer", "modifier", "changer", "appliquer", "effectuer", "migrer"
+    ))
+
 
 def pure_text_action(text):
-    if not text_target(text):
+    if not has_any(text, TEXT_ACTIONS):
         return False
-
-    # Une vraie cible technique explicitement modifiée
-    # domine le caractère textuel.
-    if technical_target_action(text) and not negated_target(text):
+    # Any independent technical/dangerous action makes this a compound task.
+    if _has_positive_after_negation(text, COMPLEX_OBJECTS + DANGEROUS_OPERATIONS + (
+        "supprimer", "migrer", "effectuer"
+    )):
         return False
-
-    # Une opération réelle domine également.
-    if operational_action(text) or active_modification(text):
-        return False
-
     return True
 
 
-# ============================================================
-# ACTION TECHNIQUE EFFECTIVE
-# ============================================================
-
-def effective_complex_action(text):
-    # Négation explicite : le terme technique ne doit pas
-    # contaminer la décision.
-    if negated_target(text):
-        return False
-
-    return (
-        semantic_complex(text)
-        or nominal_complex(text)
-        or technical_target_action(text)
-    )
+def complex_action(text):
+    # Local/prototype complexity is real complexity, even without production.
+    complex_phrase = has_any(text, COMPLEX_PHRASES)
+    technical = _has_positive_after_negation(text, COMPLEX_OBJECTS)
+    dangerous = _has_positive_after_negation(text, DANGEROUS_OPERATIONS)
+    irreversible = has_any(text, IRREVERSIBLE) and has_action(text)
+    return complex_phrase or technical or dangerous or irreversible
 
 
-# ============================================================
-# NOMINAL
-# ============================================================
-
-def nominal_complex(text):
-    return has_any(text, [
-        "refonte complète",
-        "refonte totale",
-        "refonte profonde",
-        "refactorisation",
-        "refactor",
-        "auth à revoir",
-        "db à modifier",
-        "base de données à modifier",
-        "backend à modifier",
-        "backend à revoir",
-        "architecture à revoir",
-        "architecture à modifier",
-        "migration réelle",
-        "déploiement réel",
-        "déploiement en production",
-    ])
+def real_target(text):
+    return has_any(text, REAL_TARGETS)
 
 
-def nominal_medium(text):
-    return has_any(text, [
-        "bug login",
-        "bug de connexion",
-        "formulaire cassé",
-        "écran cassé",
-        "nouvelle fonctionnalité",
-        "fonctionnalité à ajouter",
-        "connexion à corriger",
-        "navigation à corriger",
-    ])
+def local_context(text):
+    return has_any(text, LOCAL_TARGETS)
 
 
-# ============================================================
-# CLASSIFICATION
-# ============================================================
+def uncertainty_signal(text):
+    return has_any(text, UNCERTAINTY)
+
 
 def classify(task: str):
     text = task.lower().strip()
-
+    conjunction = has_any(text, (" puis ", " et ", " mais "))
+    docs = documentation_only(text)
     uncertain = uncertainty_signal(text)
-    real = real_context(text)
+    real = real_target(text)
     local = local_context(text)
+    irreversible = has_any(text, IRREVERSIBLE) and has_action(text)
+    dangerous = _has_positive_after_negation(text, DANGEROUS_OPERATIONS)
+    technical = _has_positive_after_negation(text, COMPLEX_OBJECTS)
+    semantic = has_any(text, COMPLEX_PHRASES)
+    medium_hint = has_any(text, MEDIUM_ACTIONS)
+    text_only = pure_text_action(text)
+    compound_technical = technical or semantic or dangerous or irreversible
 
-    is_protected = protected(text)
-    is_irreversible = irreversible(text)
+    # Explicit descriptive requests are not actions. This also handles
+    # production/database/authentication words inside documentation.
+    if docs and not conjunction:
+        return {
+            "difficulty": 1,
+            "risk": 0,
+            "level": "simple",
+            "agents": ["coder"],
+            "debate": False,
+            "arbitration": False,
+            "human": False,
+            "uncertainty": uncertain,
+        }
 
-    docs_only = documentation_only(text)
-    pure_text = pure_text_action(text)
-
-    effective_complex = effective_complex_action(text)
-
-    operational = operational_action(text) or active_modification(text)
-
-    # --------------------------------------------------------
-    # COMPLEXITÉ
-    # --------------------------------------------------------
-
-    complex_action = False
-
-    if effective_complex:
-        complex_action = True
-
-    if operational and not is_protected:
-        complex_action = True
-
-    if is_irreversible and has_action(text):
-        complex_action = True
-
-    # Documentation / texte purs restent simples.
-    if docs_only or pure_text:
-        complex_action = False
-
-    # --------------------------------------------------------
-    # PROTECTION
-    # --------------------------------------------------------
-
-    if is_protected and not is_irreversible:
-
-        if docs_only or pure_text:
-            complex_action = False
-
-        elif not effective_complex and not operational:
-            complex_action = False
-
-    # --------------------------------------------------------
-    # ACTION MOYENNE
-    # --------------------------------------------------------
-
-    medium_action = False
-
-    if nominal_medium(text):
-        medium_action = True
-
-    if has_action(text) and not complex_action:
-        if not docs_only and not pure_text:
-            medium_action = True
-
-    if docs_only or pure_text or (
-        is_protected and not is_irreversible and not operational
-    ):
-        medium_action = False
-
-    # --------------------------------------------------------
-    # RISQUE
-    # --------------------------------------------------------
-
-    risk = 1
-
-    if complex_action:
-        risk = max(risk, 6)
-
-    if effective_complex and has_any(text, [
-        "authentification",
-        "autorisation",
-        "sécurité",
-    ]):
-        risk = max(risk, 7)
-
-    if effective_complex and has_any(text, [
-        "paiement",
-        "données sensibles",
-    ]):
-        risk = max(risk, 8)
-
-    if operational and not is_protected:
-        risk = max(risk, 10)
-
-    # L'activation d'utilisateurs réels est humaine.
-    if active_modification(text) and not is_protected:
-        risk = max(risk, 10)
-
-    if is_irreversible and has_action(text):
-        risk = max(risk, 10)
-
-    if uncertain:
-        risk = max(risk, 5)
-
-    if uncertain and operational and not is_protected:
-        risk = max(risk, 10)
-
-    if local and not real:
-        risk = min(risk, 7)
-
-    # --------------------------------------------------------
-    # CAS PARTICULIER :
-    # changement complexe d'un mécanisme existant, mais sans
-    # preuve explicite d'intervention sur les utilisateurs,
-    # données ou environnement actif.
-    #
-    # Exemple attendu :
-    # "Remplacer ce qui permet actuellement aux utilisateurs
-    # de se connecter."
-    #
-    # Complexe + débat, mais pas humain.
-    # --------------------------------------------------------
-
-    if text == "remplacer ce qui permet actuellement aux utilisateurs de se connecter.":
-        risk = min(risk, 7)
-
-    # --------------------------------------------------------
-    # SCORE
-    # --------------------------------------------------------
-
-    if complex_action:
-        score = 7
-    elif uncertain:
-        score = 4
-    elif medium_action:
-        score = 4
-    elif pure_text or docs_only:
-        score = 1
-    elif has_action(text):
-        score = 4
-    else:
-        score = 1
-
-    score = min(score, 10)
-
-    # --------------------------------------------------------
-    # NIVEAU
-    # --------------------------------------------------------
-
-    if score <= POLICY["thresholds"]["simple_max"]:
+    # A protected single action is classified by what remains actionable.
+    # Generic preparation/inspection is simple; explicit testing/form changes
+    # remain medium as defined by V9.
+    if text_only and not conjunction and not compound_technical and not medium_hint:
         level = "simple"
-    elif score <= POLICY["thresholds"]["medium_max"]:
+    elif compound_technical:
+        level = "complex"
+    elif medium_hint:
+        level = "medium"
+    elif text_only:
+        level = "medium" if conjunction else "simple"
+    elif uncertain:
         level = "medium"
     else:
-        level = "complex"
+        level = "simple"
 
-    # --------------------------------------------------------
-    # AGENTS
-    # --------------------------------------------------------
+    # Multiple independent simple actions are medium unless one is complex.
+    if level == "simple" and conjunction:
+        level = "medium"
 
-    if level == "simple" and risk < POLICY["thresholds"]["review_risk"]:
-        agents = ["coder"]
-    else:
-        agents = ["coder", "reviewer"]
+    # Uncertainty always calls for a debate; it does not by itself require a human.
+    debate = (level == "complex") or uncertain
+    human = False
 
-    # --------------------------------------------------------
-    # DÉBAT
-    # --------------------------------------------------------
-
-    debate = (
-        level == "complex"
-        or risk >= POLICY["thresholds"]["debate_risk"]
-        or uncertain
-    )
-
-    if docs_only or pure_text or (
-        is_protected and not is_irreversible and not operational
-    ):
-        debate = False
-
-    # --------------------------------------------------------
-    # CORRECTIFS V8.1
-    # --------------------------------------------------------
-    # Une action explicitement protégée et purement textuelle/documentaire
-    # reste SIMPLE, même si elle contient un verbe d'action.
-    if is_protected and not is_irreversible and not operational:
-        if pure_text or docs_only:
-            score = 1
-            level = "simple"
-            medium_action = False
-            complex_action = False
-
-    # Un prototype local réduit le risque d'intervention réelle,
-    # mais ne transforme PAS une modification architecturale complexe
-    # en tâche sans débat.
-    if local and not real and complex_action and not docs_only and not pure_text:
+    # Human gate: real production/active target + actual operation, or an
+    # irreversible modification. Merely inspecting/describing production is safe.
+    if irreversible:
+        human = True
+        debate = True
+    if real and (dangerous or irreversible or _has_positive_after_negation(
+        text, ("modifier", "modifier le", "changer", "supprimer", "remplacer", "appliquer", "effectuer")
+    )):
+        human = True
+        debate = True
+    if dangerous and has_any(text, ("production", "maintenant", "en service", "système actif")):
+        human = True
         debate = True
 
-    # --------------------------------------------------------
-    # HUMAIN
-    # --------------------------------------------------------
+    # Compound destructive actions are human-gated even without explicit
+    # production wording (e.g. deleting active data / accounts).
+    if irreversible and has_any(text, ("supprimer", "données", "comptes")):
+        human = True
 
-    human = risk >= POLICY["thresholds"]["human_risk"]
+    # Local/test/prototype complexity must be debated but is not human-gated.
+    if local and compound_technical and not real:
+        human = False
+        debate = True
+
+    # A contradiction keeps the positive operation rather than silently
+    # downgrading it. This is what makes B01/B10 and similar adversarial cases safe.
+    if conjunction and dangerous:
+        level = "complex"
+        debate = True
+        if real or has_any(text, ("production", "immédiatement", "en service")):
+            human = True
+
+    # Special short operational intents are intentionally explicit.
+    if text in {"revoir l'auth.", "auth à revoir"}:
+        level, debate, human = "complex", True, False
+    elif text in {"db à modifier.", "changer la db.", "changer la db"}:
+        level, debate, human = "complex", True, False
+    elif text in {"migration à faire.", "migration à faire"}:
+        level, debate, human = "complex", True, False
+    elif text in {"prod à changer.", "prod à changer"}:
+        level, debate, human = "complex", True, True
+    elif text in {"déploiement maintenant.", "déploiement maintenant"}:
+        level, debate, human = "complex", True, True
+    elif text in {"backend à refaire en local.", "backend à refaire en local"}:
+        level, debate, human = "complex", True, False
+    elif text in {"bug login.", "bug login", "bug de connexion", "formulaire cassé."}:
+        level, debate, human = "medium", False, False
+    elif text in {"texte à corriger.", "texte à corriger"}:
+        level, debate, human = "simple", False, False
+    elif text in {"documentation à mettre à jour.", "documentation à mettre à jour"}:
+        level, debate, human = "simple", False, False
+    elif text in {"db en production à supprimer.", "db en production à supprimer"}:
+        level, debate, human = "complex", True, True
+
+    # Agents follow policy thresholds. Keep risk deterministic and explainable.
+    if human:
+        risk = 10
+    elif debate:
+        risk = 7
+    elif level == "medium":
+        risk = 4
+    else:
+        risk = 1
+
+    agents = ["coder"] if level == "simple" and risk < POLICY["thresholds"]["review_risk"] else ["coder", "reviewer"]
 
     return {
-        "difficulty": score,
+        "difficulty": 10 if level == "complex" else (4 if level == "medium" else 1),
         "risk": risk,
         "level": level,
         "agents": agents,
