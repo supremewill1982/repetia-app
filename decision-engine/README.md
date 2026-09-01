@@ -16,7 +16,7 @@ The consuming application remains responsible for every external side effect.
 
 ## Public API
 
-- `DecisionRequest`: stable input contract.
+- `DecisionRequest`: stable input contract, including optional `tenant_id`, `requester`, and `request_id` identity fields.
 - `DecisionResponse`: stable output contract.
 - `evaluate(request)`: public evaluation entry point.
 - `evaluate_payload(payload)`: transport-neutral JSON-compatible boundary.
@@ -36,6 +36,8 @@ Endpoints:
 - `POST /v1/decide/audited` — evaluate and return the decision plus audit metadata.
 
 In production mode (`DECISION_ENGINE_ENV=production`), the API requires `X-API-Key` matching `DECISION_ENGINE_API_KEY`. TLS, rate limiting, network controls, and tenant authorization remain deployment responsibilities.
+
+`tenant_id` is an identity/isolation boundary carried through the request and audit metadata. It does not itself grant authorization; the consuming gateway/application must authenticate the caller and enforce that the caller can access the requested tenant.
 
 ## Container
 
@@ -67,6 +69,7 @@ Consumer / ERP / RÉPÉTIA / future product
                     |
                     v
              DecisionRequest
+             (tenant/request identity)
                     |
                     v
              Public Engine API
@@ -88,7 +91,7 @@ Consumer decides whether/how to execute
 
 ## Audit
 
-Audit records contain request identity, requester, engine version, classifier version, decision level/risk, governance flags, reason, and timestamp. The original request payload is not persisted by the audit helper, reducing accidental capture of sensitive input data.
+Audit records contain request identity, requester, tenant identity, engine version, classifier version, decision level/risk, governance flags, reason, and timestamp. The original request payload is not persisted by the audit helper, reducing accidental capture of sensitive input data.
 
 ## Development
 
