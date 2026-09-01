@@ -32,8 +32,8 @@ def classify(task:str):
         protected=negated and not independent_positive
         active_real=_active(text,REAL)
         destructive=has_any(text,("supprimer","détruire","faire disparaître")) and _action(text)
-        local_complex_test=(has_any(text,("tester une ","tester le ","tester ","construire")) and has_any(text,OBJECTS) and has_any(text,("sans déployer","sans la déployer","sans l'appliquer","sans appliquer")))
-        # Explicit protection can downgrade only the protected operation, not an independently requested technical action.
+        # Building/reworking a technical system is complex even when explicitly isolated from production.
+        local_complex_test=(has_any(text,("tester une ","tester le ","tester ","construire")) and has_any(text,OBJECTS) and has_any(text,("sans déployer","sans la déployer","sans l'appliquer","sans appliquer","sans toucher au système actif")))
         if compound and (dangerous or irreversible or (technical and destructive)): level="complex"
         elif active_real and _action(text): level="complex"
         elif local_complex_test: level="complex"
@@ -52,13 +52,10 @@ def classify(task:str):
         if active_real and _action(text) and not protected: human,debate=True,True
         if active_real and destructive: level,debate,human="complex",True,True
         if compound and destructive and active_real: level,debate,human="complex",True,True
-        # A compound destructive data/account change is human-gated even without an explicit production marker.
         if compound and destructive and has_any(text,("données","comptes")): level,debate,human="complex",True,True
         if local_complex_test and not active_real: human,debate=False,True
         if compound and dangerous: level,debate,human="complex",True,True
-        # Explicitly harmless compound wording must not inherit a generic medium score.
         if has_any(text,("aucun changement réel","aucune modification réelle")) and not active_real and not dangerous and not irreversible: level,debate,human="simple",False,False
-        # A compound technical task involving a DB/data change is complex but is not automatically human-gated unless live/destructive.
         if compound and technical and not active_real and not destructive and not dangerous and not irreversible: level="complex"
     difficulty={"simple":1,"medium":4,"complex":8}[level]
     risk=10 if human else (7 if debate else (4 if level=="medium" else 1))
