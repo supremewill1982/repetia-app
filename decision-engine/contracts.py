@@ -31,6 +31,7 @@ class DecisionResponse:
     uncertainty: bool
     reason: str
     engine_version: str = "v1"
+    classifier_version: str = "v9"
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -44,4 +45,5 @@ class DecisionResponse:
             "uncertainty": self.uncertainty,
             "reason": self.reason,
             "engine_version": self.engine_version,
+            "classifier_version": self.classifier_version,
         }
